@@ -30,64 +30,61 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Verify Flutter
-        run: flutter --version
+      - name: Flutter version info
+        run: |
+          flutter --version
+          dart --version
 
-      - name: Generate Android Platform for mobile/
+      - name: Generate Android Platform
         working-directory: mobile
         run: |
           flutter create --platforms=android . 2>&1
-          echo "=== Android scaffold done ==="
-          ls android/
+          echo "=== Android scaffold exit: $? ==="
 
-      - name: Install Dependencies
+      - name: Show pubspec after scaffold
+        working-directory: mobile
+        run: cat pubspec.yaml
+
+      - name: Flutter pub get
         working-directory: mobile
         run: |
           flutter pub get 2>&1
-          echo "=== pub get done ==="
 
-      - name: Patch main.dart - remove Inter fontFamily
+      - name: Show pub outdated / lock
         working-directory: mobile
         run: |
-          sed -i "s/fontFamily: 'Inter',/\/\/ fontFamily: 'Inter', \/\/ patched for CI/g" lib/main.dart
-          echo "=== Patched main.dart ==="
-          grep -n "fontFamily\|Inter" lib/main.dart || true
+          cat pubspec.lock | head -80
 
-      - name: Analyze Dart Code
+      - name: Patch main.dart fontFamily
         working-directory: mobile
         run: |
-          flutter analyze --no-fatal-infos 2>&1
-          echo "=== flutter analyze exit: $? ==="
+          sed -i "s/fontFamily: 'Inter',/\/\/ fontFamily patched/g" lib/main.dart
 
-      - name: Build Release APK
+      - name: Build Release APK (full verbose)
         working-directory: mobile
         run: |
           flutter build apk --release --no-tree-shake-icons --verbose 2>&1
 
-      - name: Locate and rename APK
+      - name: Copy APK
         run: |
           find mobile/build -name "*.apk" 2>/dev/null
           cp mobile/build/app/outputs/flutter-apk/app-release.apk settlr-v0.0.1.apk
-          echo "APK size: $(du -sh settlr-v0.0.1.apk)"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name || 'v0.0.1' }}
-          name: Settlr Android v${{ github.ref_name || '0.0.1' }}
+          name: Settlr Android Release v0.0.1
           draft: false
           prerelease: false
           body: |
             ## 📱 Settlr Mobile — Native Android App (v0.0.1)
 
-            ### Highlights:
-            * **Continuous Debt Netting**: Bilateral calculation engine balances debts automatically.
-            * **Background Bank SMS Detection**: Intercepts UPI, Netbanking, and Debit card notifications.
-            * **Local-First & Multi-Currency**: Offline-first session with INR, USD, EUR, and GBP.
-            * **Private Solitary Ledger**: Tracks personal spending separately from shared groups.
+            * **Continuous Debt Netting** — bilateral pairwise calculation engine
+            * **Local-First & Multi-Currency** — INR, USD, EUR, GBP offline-first
+            * **Private Solitary Ledger** — personal spending off shared groups
 
-            ### Installation:
-            Download `settlr-v0.0.1.apk` and install directly on your Android device.
+            Install `settlr-v0.0.1.apk` directly on your Android device.
           files: |
             settlr-v0.0.1.apk
         env:
