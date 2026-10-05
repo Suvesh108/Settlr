@@ -41,9 +41,11 @@ jobs:
       - name: Compile Android Release APK
         working-directory: settlr_app
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleRelease --stacktrace --no-daemon
+          flutter build apk --release --no-tree-shake-icons > /tmp/flutter_build.log 2>&1 || {
+            echo "==== FLUTTER BUILD LOG TAIL ===="
+            cat /tmp/flutter_build.log | grep -E -A 10 "(FAILURE|BUILD FAILED|Error|Exception)" | head -n 80
+            exit 1
+          }
 
       - name: Rename APK Asset
         run: |
