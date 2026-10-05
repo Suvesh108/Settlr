@@ -30,13 +30,19 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Ensure Android Project Scaffolding
+        working-directory: mobile
+        run: |
+          # Use flutter create to synthesize official wrapper, gradle wrappers, and manifest
+          flutter create . --org com.settlr --platforms android --project-name settlr_mobile
+
       - name: Install Dependencies
         working-directory: mobile
         run: flutter pub get
 
       - name: Build Android APK
         working-directory: mobile
-        run: flutter build apk --release
+        run: flutter build apk --release --verbose
 
       - name: Rename APK Asset
         run: |
