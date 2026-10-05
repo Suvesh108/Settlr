@@ -33,16 +33,15 @@ jobs:
       - name: Scaffold Official Flutter Android Project
         run: |
           flutter create settlr_app --org com.settlr --project-name settlr_mobile --platforms=android
-          cp -r mobile/lib settlr_app/
-          cp mobile/pubspec.yaml settlr_app/pubspec.yaml
-
-      - name: Fetch Flutter Dependencies
-        working-directory: settlr_app
-        run: flutter pub get
+          cd settlr_app
+          flutter pub add http shared_preferences intl google_fonts uuid
+          rm -rf lib
+          cp -r ../mobile/lib lib
 
       - name: Compile Android Release APK
         working-directory: settlr_app
-        run: flutter build apk --release --no-tree-shake-icons
+        run: |
+          flutter build apk --release --no-tree-shake-icons
 
       - name: Rename APK Asset
         run: |
