@@ -30,25 +30,53 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Scaffold Official Flutter Android Project
-        run: |
-          flutter create settlr_app --org com.settlr --project-name settlr_mobile --platforms=android
-          cd settlr_app
-          flutter pub add http shared_preferences intl google_fonts uuid
-          rm -rf lib
-          cp -r ../mobile/lib lib
+      - name: Verify Flutter
+        run: flutter --version
 
-      - name: Compile Android Release APK
+      - name: Scaffold Fresh Flutter Android Project
+        run: |
+          flutter create settlr_app \
+            --org com.settlr \
+            --project-name settlr_mobile \
+            --platforms=android
+          echo "=== Scaffold done ==="
+
+      - name: Install Dependencies
         working-directory: settlr_app
         run: |
-          flutter build apk --release --no-tree-shake-icons > /tmp/flutter_build.log 2>&1 || {
-            echo "==== FLUTTER BUILD LOG TAIL ===="
-            tail -n 80 /tmp/flutter_build.log
-            exit 1
-          }
+          flutter pub add http shared_preferences intl uuid
+          echo "=== pub add done ==="
+          flutter pub get
+          echo "=== pub get done ==="
 
-      - name: Rename APK Asset
+      - name: Copy App Source
         run: |
+          rm -rf settlr_app/lib
+          cp -r mobile/lib settlr_app/lib
+          echo "=== Source copy done ==="
+          ls settlr_app/lib
+
+      - name: Remove google_fonts from source (replaced with system font)
+        run: |
+          # Replace fontFamily: 'Inter' with nothing (let Flutter use default)
+          sed -i "s/fontFamily: 'Inter',/\/\/ fontFamily removed for CI build/g" settlr_app/lib/main.dart
+          echo "=== main.dart after patch ==="
+          cat settlr_app/lib/main.dart
+
+      - name: Analyze Dart Code
+        working-directory: settlr_app
+        run: |
+          flutter analyze --no-fatal-infos
+          echo "=== Analyze done ==="
+
+      - name: Build Release APK
+        working-directory: settlr_app
+        run: |
+          flutter build apk --release --no-tree-shake-icons --verbose
+
+      - name: Locate APK
+        run: |
+          find settlr_app/build -name "*.apk" 2>/dev/null || echo "No APK found"
           cp settlr_app/build/app/outputs/flutter-apk/app-release.apk settlr-v0.0.1.apk
 
       - name: Create GitHub Release
@@ -65,10 +93,10 @@ jobs:
             * **Continuous Debt Netting**: Bilateral calculation engine balances debts automatically.
             * **Background Bank SMS Detection**: Intercepts UPI, Netbanking, and Debit card notifications.
             * **Local-First & Multi-Currency**: Offline-first session with INR, USD, EUR, and GBP.
-            * **Private Solitary Ledger**: Seamlessly tracks personal spending separate from shared roommate groups.
+            * **Private Solitary Ledger**: Tracks personal spending separately from shared groups.
 
             ### Installation:
-            Download and install `settlr-v0.0.1.apk` directly onto your Android device.
+            Download `settlr-v0.0.1.apk` and install directly on your Android device.
           files: |
             settlr-v0.0.1.apk
         env:
