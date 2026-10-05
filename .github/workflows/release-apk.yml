@@ -32,14 +32,17 @@ jobs:
 
       - name: Scaffold Official Flutter Android Project
         run: |
-          # Create a clean fresh Flutter project with official modern Gradle 8 & AGP configuration
-          flutter create settlr_app --org com.settlr --project-name settlr_mobile --platforms android
-          # Copy our customized mobile code and pubspec into the scaffolded app
+          flutter create settlr_app --org com.settlr --project-name settlr_mobile --platforms=android
           cp -r mobile/lib settlr_app/
           cp mobile/pubspec.yaml settlr_app/pubspec.yaml
-          cd settlr_app
-          flutter pub get
-          flutter build apk --release --no-tree-shake-icons
+
+      - name: Fetch Flutter Dependencies
+        working-directory: settlr_app
+        run: flutter pub get
+
+      - name: Compile Android Release APK
+        working-directory: settlr_app
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Rename APK Asset
         run: |
