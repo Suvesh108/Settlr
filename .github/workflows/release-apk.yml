@@ -43,7 +43,7 @@ jobs:
         run: |
           flutter build apk --release --no-tree-shake-icons > /tmp/flutter_build.log 2>&1 || {
             echo "==== FLUTTER BUILD LOG TAIL ===="
-            cat /tmp/flutter_build.log | grep -E -A 10 "(FAILURE|BUILD FAILED|Error|Exception)" | head -n 80
+            tail -n 80 /tmp/flutter_build.log
             exit 1
           }
 
