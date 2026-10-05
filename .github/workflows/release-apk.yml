@@ -38,49 +38,52 @@ jobs:
       - name: Generate Android Platform
         working-directory: mobile
         run: |
-          flutter create --platforms=android . 2>&1
+          flutter create --org com.settlr --platforms=android . 2>&1
           echo "=== Android scaffold exit: $? ==="
 
-      - name: Show pubspec after scaffold
+      - name: Patch Android Platform (Icons, Permissions, FileProvider, Native Updater)
         working-directory: mobile
-        run: cat pubspec.yaml
+        run: |
+          python scripts/patch_android.py
+          echo "=== Android patch exit: $? ==="
 
       - name: Flutter pub get
         working-directory: mobile
         run: |
           flutter pub get 2>&1
 
-      - name: Show pub outdated / lock
-        working-directory: mobile
-        run: |
-          cat pubspec.lock | head -80
-
       - name: Build Release APK
         working-directory: mobile
         run: |
           flutter build apk --release --no-tree-shake-icons
 
-      - name: Copy APK
+      - name: Copy APK Asset
         run: |
-          find mobile/build -name "*.apk" 2>/dev/null
-          cp mobile/build/app/outputs/flutter-apk/app-release.apk settlr-v0.0.1.apk
+          VERSION="${{ github.ref_name || 'v0.0.2' }}"
+          cp mobile/build/app/outputs/flutter-apk/app-release.apk "settlr-${VERSION}.apk"
+          echo "Generated APK: settlr-${VERSION}.apk"
+          ls -lh *.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name || 'v0.0.1' }}
-          name: Settlr Android Release v0.0.1
+          tag_name: ${{ github.ref_name || 'v0.0.2' }}
+          name: Settlr Android Release ${{ github.ref_name || 'v0.0.2' }}
           draft: false
           prerelease: false
           body: |
-            ## 📱 Settlr Mobile — Native Android App (v0.0.1)
+            ## 📱 Settlr Mobile — Native Android App (${{ github.ref_name || 'v0.0.2' }})
 
-            * **Continuous Debt Netting** — bilateral pairwise calculation engine
-            * **Local-First & Multi-Currency** — INR, USD, EUR, GBP offline-first
-            * **Private Solitary Ledger** — personal spending off shared groups
+            ### What's New:
+            * **Official App Logo & Launcher Icon**: Replaced default bolt with official Settlr brand identity.
+            * **Offline & Physical Device Durability**: Full local-first offline support without network socket permission errors.
+            * **In-App Direct Updates**: One-tap "Check for Update" in Profile to download and install new releases internally without browser redirection.
+            * **Continuous Debt Netting**: Bilateral calculation engine balances debts automatically.
+            * **Private Solitary Ledger**: Seamlessly tracks personal spending separate from shared roommate groups.
 
-            Install `settlr-v0.0.1.apk` directly on your Android device.
+            ### Installation:
+            Download and install `settlr-${{ github.ref_name || 'v0.0.2' }}.apk` directly on your Android device.
           files: |
-            settlr-v0.0.1.apk
+            settlr-*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

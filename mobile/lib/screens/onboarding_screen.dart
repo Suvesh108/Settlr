@@ -73,24 +73,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               children: [
                 // Logo Icon
                 Container(
-                  width: 56,
-                  height: 56,
+                  width: 68,
+                  height: 68,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: SettlrColors.border),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 10,
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: const Center(
-                    child: Text(
-                      '⚡',
-                      style: TextStyle(fontSize: 26),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 68,
+                      height: 68,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),

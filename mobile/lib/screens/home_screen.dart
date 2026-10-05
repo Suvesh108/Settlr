@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
+import '../services/update_service.dart';
 import '../theme/colors.dart';
 import 'onboarding_screen.dart';
 
@@ -160,15 +161,16 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: SettlrColors.primary,
-                borderRadius: BorderRadius.circular(10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 28,
+                height: 28,
+                fit: BoxFit.contain,
               ),
-              child: const Text('⚡', style: TextStyle(fontSize: 14)),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             const Text(
               'Settlr',
               style: TextStyle(
@@ -448,6 +450,76 @@ class _ProfileSheet extends StatefulWidget {
 
 class _ProfileSheetState extends State<_ProfileSheet> {
   bool _showConfirmLogout = false;
+  bool _isCheckingUpdate = false;
+  bool _isDownloading = false;
+  double _downloadProgress = 0.0;
+  String? _updateStatusMessage;
+  UpdateInfo? _availableUpdate;
+
+  Future<void> _handleCheckUpdate() async {
+    setState(() {
+      _isCheckingUpdate = true;
+      _updateStatusMessage = null;
+    });
+
+    try {
+      final info = await UpdateService.checkForUpdate();
+      setState(() {
+        _isCheckingUpdate = false;
+        if (info.hasUpdate) {
+          _availableUpdate = info;
+          _updateStatusMessage = 'New version ${info.latestVersion} available!';
+        } else {
+          _availableUpdate = null;
+          _updateStatusMessage = 'You are on the latest version (${info.currentVersion})';
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _isCheckingUpdate = false;
+        _updateStatusMessage = 'Could not check: ${e.toString().replaceAll('Exception: ', '')}';
+      });
+    }
+  }
+
+  Future<void> _handleDownloadAndInstall() async {
+    if (_availableUpdate?.downloadUrl == null) return;
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0.0;
+      _updateStatusMessage = 'Downloading update package...';
+    });
+
+    try {
+      await UpdateService.downloadAndInstall(
+        downloadUrl: _availableUpdate!.downloadUrl!,
+        onProgress: (progress, received, total) {
+          if (!mounted) return;
+          setState(() {
+            _downloadProgress = progress;
+            final mbReceived = (received / (1024 * 1024)).toStringAsFixed(1);
+            final mbTotal = (total / (1024 * 1024)).toStringAsFixed(1);
+            _updateStatusMessage = total > 0
+                ? 'Downloading: $mbReceived / $mbTotal MB (${(progress * 100).toInt()}%)'
+                : 'Downloading: $mbReceived MB';
+          });
+        },
+      );
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          _updateStatusMessage = 'Opening Android installer...';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          _updateStatusMessage = 'Install failed: $e';
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -487,7 +559,116 @@ class _ProfileSheetState extends State<_ProfileSheet> {
               IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+
+          // Check for Updates section
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: SettlrColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: SettlrColors.border),
+                          ),
+                          child: const Icon(Icons.system_update_alt_rounded, size: 18, color: SettlrColors.primary),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'App Updates',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: SettlrColors.textMain),
+                            ),
+                            Text(
+                              'Current version: ${UpdateService.currentVersion}',
+                              style: const TextStyle(fontSize: 11, color: SettlrColors.textMuted),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: SettlrColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                      onPressed: (_isCheckingUpdate || _isDownloading) ? null : _handleCheckUpdate,
+                      child: _isCheckingUpdate
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text('Check for Update', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+                if (_updateStatusMessage != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _updateStatusMessage!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: _availableUpdate != null ? SettlrColors.positive : SettlrColors.textMuted,
+                    ),
+                  ),
+                ],
+                if (_availableUpdate != null) ...[
+                  const SizedBox(height: 12),
+                  if (_isDownloading) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: _downloadProgress > 0 ? _downloadProgress : null,
+                        minHeight: 8,
+                        backgroundColor: const Color(0xFFE5E7EB),
+                        color: SettlrColors.positive,
+                      ),
+                    ),
+                  ] else ...[
+                    SizedBox(
+                      width: double.infinity,
+                      height: 42,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: SettlrColors.positive,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: _handleDownloadAndInstall,
+                        icon: const Icon(Icons.download_rounded, size: 18),
+                        label: Text(
+                          'Download & Install ${_availableUpdate!.latestVersion}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
 
           // Custom animated logout warning message bar
           if (_showConfirmLogout)
