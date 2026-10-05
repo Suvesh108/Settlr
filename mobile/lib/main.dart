@@ -28,7 +28,6 @@ class SettlrApp extends StatelessWidget {
       title: 'Settlr',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        fontFamily: 'Inter',
         scaffoldBackgroundColor: SettlrColors.background,
         colorScheme: ColorScheme.fromSeed(
           seedColor: SettlrColors.primary,

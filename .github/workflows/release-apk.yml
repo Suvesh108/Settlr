@@ -55,15 +55,10 @@ jobs:
         run: |
           cat pubspec.lock | head -80
 
-      - name: Patch main.dart fontFamily
+      - name: Build Release APK
         working-directory: mobile
         run: |
-          sed -i "s/fontFamily: 'Inter',/\/\/ fontFamily patched/g" lib/main.dart
-
-      - name: Build Release APK (full verbose)
-        working-directory: mobile
-        run: |
-          flutter build apk --release --no-tree-shake-icons --verbose 2>&1
+          flutter build apk --release --no-tree-shake-icons
 
       - name: Copy APK
         run: |
