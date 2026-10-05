@@ -41,11 +41,9 @@ jobs:
       - name: Compile Android Release APK
         working-directory: settlr_app
         run: |
-          set -x
-          flutter build apk --release --split-per-abi=false --verbose || {
-            echo "==== GRADLE ERROR SUMMARY ===="
-            exit 1
-          }
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --stacktrace --no-daemon
 
       - name: Rename APK Asset
         run: |
