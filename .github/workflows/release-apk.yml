@@ -27,7 +27,6 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.5'
           channel: 'stable'
           cache: true
 
@@ -38,12 +37,11 @@ jobs:
           flutter pub add http shared_preferences intl google_fonts uuid
           rm -rf lib
           cp -r ../mobile/lib lib
-          flutter analyze || true
 
       - name: Compile Android Release APK
         working-directory: settlr_app
         run: |
-          flutter build apk --release --no-tree-shake-icons > build.log 2>&1 || (tail -n 120 build.log && exit 1)
+          flutter build apk --release --split-per-abi=false
 
       - name: Rename APK Asset
         run: |
