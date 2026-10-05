@@ -1,0 +1,347 @@
+{
+  "users": {
+    "usr_2727eb70": {
+      "id": "usr_2727eb70",
+      "name": "Aman",
+      "email": "aman@local",
+      "password_hash": "nopassword",
+      "default_currency": "INR",
+      "created_at": "2026-10-04T21:22:18.0724949+05:30"
+    },
+    "usr_682ea07f": {
+      "id": "usr_682ea07f",
+      "name": "Suvesh",
+      "email": "suvesh@local",
+      "password_hash": "nopassword",
+      "default_currency": "INR",
+      "created_at": "2026-10-04T21:22:26.5360387+05:30"
+    },
+    "usr_da7d82e6": {
+      "id": "usr_da7d82e6",
+      "name": "Rahul",
+      "email": "rahul@local",
+      "password_hash": "nopassword",
+      "default_currency": "INR",
+      "created_at": "2026-10-04T21:22:09.4750476+05:30"
+    }
+  },
+  "users_by_email": {
+    "aman@local": {
+      "id": "usr_2727eb70",
+      "name": "Aman",
+      "email": "aman@local",
+      "password_hash": "nopassword",
+      "default_currency": "INR",
+      "created_at": "2026-10-04T21:22:18.0724949+05:30"
+    },
+    "rahul@local": {
+      "id": "usr_da7d82e6",
+      "name": "Rahul",
+      "email": "rahul@local",
+      "password_hash": "nopassword",
+      "default_currency": "INR",
+      "created_at": "2026-10-04T21:22:09.4750476+05:30"
+    },
+    "suvesh@local": {
+      "id": "usr_682ea07f",
+      "name": "Suvesh",
+      "email": "suvesh@local",
+      "password_hash": "nopassword",
+      "default_currency": "INR",
+      "created_at": "2026-10-04T21:22:26.5360387+05:30"
+    }
+  },
+  "groups": {
+    "258304de-e197-4e1f-b97c-cbe334f0c37b": {
+      "id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+      "name": "apartment",
+      "description": "",
+      "currency": "INR",
+      "invite_code": "BEoAGEN5AWyVz7Rz",
+      "ledger_version": 9,
+      "created_by": "usr_682ea07f",
+      "created_at": "2026-10-04T21:22:03.6509933+05:30"
+    }
+  },
+  "groups_by_code": {
+    "BEoAGEN5AWyVz7Rz": {
+      "id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+      "name": "apartment",
+      "description": "",
+      "currency": "INR",
+      "invite_code": "BEoAGEN5AWyVz7Rz",
+      "ledger_version": 1,
+      "created_by": "usr_682ea07f",
+      "created_at": "2026-10-04T21:22:03.6509933+05:30"
+    }
+  },
+  "members": {
+    "258304de-e197-4e1f-b97c-cbe334f0c37b": {
+      "usr_2727eb70": {
+        "id": "75b7b0a7-ad16-4a88-ad22-8ec2b236abd7",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "user_id": "usr_2727eb70",
+        "role": "MEMBER",
+        "status": "ACTIVE",
+        "joined_at": "2026-10-04T21:22:21.0950887+05:30"
+      },
+      "usr_682ea07f": {
+        "id": "1b97a908-bd9b-498e-b7aa-447c3f6875a7",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "user_id": "usr_682ea07f",
+        "role": "OWNER",
+        "status": "ACTIVE",
+        "joined_at": "2026-10-04T21:22:03.6509933+05:30"
+      },
+      "usr_da7d82e6": {
+        "id": "50a451b3-2fc1-4526-89f8-22d63a46c0f3",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "user_id": "usr_da7d82e6",
+        "role": "MEMBER",
+        "status": "ACTIVE",
+        "joined_at": "2026-10-04T21:22:12.8928128+05:30"
+      }
+    }
+  },
+  "expenses": {
+    "258304de-e197-4e1f-b97c-cbe334f0c37b": [
+      {
+        "id": "e04bb25d-3c68-4f5b-afae-bce823e368d1",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "paid_by": "usr_2727eb70",
+        "amount": 32000,
+        "currency": "INR",
+        "description": "Blue Tokai Coffee",
+        "category": "FOOD",
+        "split_type": "EQUAL",
+        "expense_date": "2026-10-04T22:30:16.6809803+05:30",
+        "is_reversal": false,
+        "is_reversed": false,
+        "created_by": "usr_2727eb70",
+        "created_at": "2026-10-04T22:30:16.6809803+05:30",
+        "participants": [
+          {
+            "user_id": "usr_2727eb70",
+            "share_amount": 10667
+          },
+          {
+            "user_id": "usr_682ea07f",
+            "share_amount": 10667
+          },
+          {
+            "user_id": "usr_da7d82e6",
+            "share_amount": 10666
+          }
+        ]
+      },
+      {
+        "id": "ee2fcf74-e0a2-4a4c-bb28-08e3f37f1b3d",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "paid_by": "usr_2727eb70",
+        "amount": 54000,
+        "currency": "INR",
+        "description": "Zomato Food Delivery",
+        "category": "FOOD",
+        "split_type": "EQUAL",
+        "expense_date": "2026-10-04T22:26:23.6140058+05:30",
+        "is_reversal": false,
+        "is_reversed": false,
+        "created_by": "usr_2727eb70",
+        "created_at": "2026-10-04T22:26:23.6140058+05:30",
+        "participants": [
+          {
+            "user_id": "usr_2727eb70",
+            "share_amount": 18000
+          },
+          {
+            "user_id": "usr_682ea07f",
+            "share_amount": 18000
+          },
+          {
+            "user_id": "usr_da7d82e6",
+            "share_amount": 18000
+          }
+        ]
+      },
+      {
+        "id": "444abe78-918b-4272-bfe5-692f985cdc62",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "paid_by": "usr_da7d82e6",
+        "amount": 32000,
+        "currency": "INR",
+        "description": "Blue Tokai Coffee",
+        "category": "FOOD",
+        "split_type": "EQUAL",
+        "expense_date": "2026-10-04T22:26:10.1456386+05:30",
+        "is_reversal": false,
+        "is_reversed": false,
+        "created_by": "usr_da7d82e6",
+        "created_at": "2026-10-04T22:26:10.1456386+05:30",
+        "participants": [
+          {
+            "user_id": "usr_2727eb70",
+            "share_amount": 10667
+          },
+          {
+            "user_id": "usr_682ea07f",
+            "share_amount": 10667
+          },
+          {
+            "user_id": "usr_da7d82e6",
+            "share_amount": 10666
+          }
+        ]
+      },
+      {
+        "id": "3e5facc3-8992-455b-9a37-0ccf4f2263d4",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "paid_by": "usr_682ea07f",
+        "amount": 32000,
+        "currency": "INR",
+        "description": "Blue Tokai Coffee",
+        "category": "FOOD",
+        "split_type": "EQUAL",
+        "expense_date": "2026-10-04T22:25:37.6797329+05:30",
+        "is_reversal": false,
+        "is_reversed": false,
+        "created_by": "usr_682ea07f",
+        "created_at": "2026-10-04T22:25:37.6797329+05:30",
+        "participants": [
+          {
+            "user_id": "usr_2727eb70",
+            "share_amount": 10667
+          },
+          {
+            "user_id": "usr_682ea07f",
+            "share_amount": 10667
+          },
+          {
+            "user_id": "usr_da7d82e6",
+            "share_amount": 10666
+          }
+        ]
+      }
+    ]
+  },
+  "settlements": {
+    "258304de-e197-4e1f-b97c-cbe334f0c37b": [
+      {
+        "id": "bf35d4ed-6dda-436c-b806-d34e57a73abb",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "from_user": "usr_682ea07f",
+        "to_user": "usr_2727eb70",
+        "amount": 18001,
+        "status": "CONFIRMED",
+        "recorded_by": "usr_682ea07f",
+        "confirmed_by": "usr_2727eb70",
+        "created_at": "2026-10-04T22:31:50.340672+05:30",
+        "confirmed_at": "2026-10-04T22:38:18.930597+05:30"
+      },
+      {
+        "id": "136d3b1c-77aa-41e6-8398-a119eb0007db",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "from_user": "usr_682ea07f",
+        "to_user": "usr_2727eb70",
+        "amount": 18001,
+        "status": "CONFIRMED",
+        "recorded_by": "usr_682ea07f",
+        "confirmed_by": "usr_2727eb70",
+        "created_at": "2026-10-04T22:31:46.4617045+05:30",
+        "confirmed_at": "2026-10-04T22:38:21.595332+05:30"
+      }
+    ]
+  },
+  "activities": {
+    "258304de-e197-4e1f-b97c-cbe334f0c37b": [
+      {
+        "id": "200afe1e-6368-4ddb-8a09-9f79b112c6e6",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "actor_id": "usr_2727eb70",
+        "action": "PAYMENT_CONFIRMED",
+        "summary": "Payment confirmed by receiver",
+        "created_at": "2026-10-04T22:38:21.595332+05:30"
+      },
+      {
+        "id": "d4fd0f15-c6b9-4843-b7c0-21541eeef6e4",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "actor_id": "usr_2727eb70",
+        "action": "PAYMENT_CONFIRMED",
+        "summary": "Payment confirmed by receiver",
+        "created_at": "2026-10-04T22:38:18.930597+05:30"
+      },
+      {
+        "id": "40be1ce1-1d3d-4838-92f6-7886f6a22619",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "actor_id": "usr_682ea07f",
+        "action": "PAYMENT_RECORDED",
+        "summary": "Recorded payment claim",
+        "created_at": "2026-10-04T22:31:50.340672+05:30"
+      },
+      {
+        "id": "48172ce4-03f7-4ec1-ad35-6bb83563873b",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "actor_id": "usr_682ea07f",
+        "action": "PAYMENT_RECORDED",
+        "summary": "Recorded payment claim",
+        "created_at": "2026-10-04T22:31:46.4617045+05:30"
+      },
+      {
+        "id": "be02c93e-e29f-4661-812e-646f54ea8b29",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "actor_id": "usr_2727eb70",
+        "action": "EXPENSE_CREATED",
+        "summary": "Added expense: Blue Tokai Coffee",
+        "created_at": "2026-10-04T22:30:16.6809803+05:30"
+      },
+      {
+        "id": "48d9cc0d-f29d-457a-b1bc-c9dbcfdf3473",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "actor_id": "usr_2727eb70",
+        "action": "EXPENSE_CREATED",
+        "summary": "Added expense: Zomato Food Delivery",
+        "created_at": "2026-10-04T22:26:23.6140058+05:30"
+      },
+      {
+        "id": "2657503d-8da1-48be-b4e0-2c4272555eb8",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "actor_id": "usr_da7d82e6",
+        "action": "EXPENSE_CREATED",
+        "summary": "Added expense: Blue Tokai Coffee",
+        "created_at": "2026-10-04T22:26:10.1456386+05:30"
+      },
+      {
+        "id": "65bc65b4-8b4a-498d-afcf-3a658844e1a9",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "actor_id": "usr_682ea07f",
+        "action": "EXPENSE_CREATED",
+        "summary": "Added expense: Blue Tokai Coffee",
+        "created_at": "2026-10-04T22:25:37.6797329+05:30"
+      },
+      {
+        "id": "d1f0d2ec-d5a5-445e-9826-14a690e137ac",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "actor_id": "usr_682ea07f",
+        "action": "GROUP_CREATED",
+        "summary": "Group created",
+        "created_at": "2026-10-04T21:22:03.6509933+05:30"
+      },
+      {
+        "id": "ba83e8e5-3710-4e0d-ba17-835c7c8ff458",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "actor_id": "usr_da7d82e6",
+        "action": "MEMBER_JOINED",
+        "summary": "A new member joined the group",
+        "created_at": "2026-10-04T21:22:12.8928128+05:30"
+      },
+      {
+        "id": "6a7beef1-6ebf-4d24-824d-37d29cb5607c",
+        "group_id": "258304de-e197-4e1f-b97c-cbe334f0c37b",
+        "actor_id": "usr_2727eb70",
+        "action": "MEMBER_JOINED",
+        "summary": "A new member joined the group",
+        "created_at": "2026-10-04T21:22:21.0950887+05:30"
+      }
+    ]
+  },
+  "envelopes": {}
+}

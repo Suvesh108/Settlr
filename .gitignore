@@ -1,0 +1,15 @@
+# Node
+node_modules/
+dist/
+.tmp/
+*.log
+
+# Go
+backend/server
+backend/server.exe
+*.exe
+
+# Environment & OS
+.env
+.DS_Store
+Thumbs.db
