@@ -15,11 +15,11 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      defaultCurrency: json['default_currency'] ?? 'INR',
-      token: json['token'],
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      defaultCurrency: json['default_currency']?.toString() ?? json['defaultCurrency']?.toString() ?? 'INR',
+      token: json['token']?.toString(),
     );
   }
 
@@ -51,11 +51,11 @@ class GroupMember {
 
   factory GroupMember.fromJson(Map<String, dynamic> json) {
     return GroupMember(
-      userId: json['user_id'] ?? json['userId'] ?? '',
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      role: json['role'] ?? 'MEMBER',
-      status: json['status'] ?? 'ACTIVE',
+      userId: json['user_id']?.toString() ?? json['userId']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      role: json['role']?.toString() ?? 'MEMBER',
+      status: json['status']?.toString() ?? 'ACTIVE',
     );
   }
 
@@ -93,17 +93,17 @@ class Group {
 
   factory Group.fromJson(Map<String, dynamic> json) {
     final membersList = (json['members'] as List<dynamic>?)
-            ?.map((m) => GroupMember.fromJson(m))
+            ?.map((m) => GroupMember.fromJson(m is Map<String, dynamic> ? m : Map<String, dynamic>.from(m)))
             .toList() ??
         [];
     return Group(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      description: json['description'] ?? '',
-      currency: json['currency'] ?? 'INR',
-      inviteCode: json['invite_code'] ?? json['inviteCode'] ?? '',
-      createdBy: json['created_by'] ?? json['createdBy'] ?? '',
-      ledgerVersion: json['ledger_version'] ?? json['ledgerVersion'] ?? 1,
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      currency: json['currency']?.toString() ?? 'INR',
+      inviteCode: json['invite_code']?.toString() ?? json['inviteCode']?.toString() ?? '',
+      createdBy: json['created_by']?.toString() ?? json['createdBy']?.toString() ?? '',
+      ledgerVersion: (json['ledger_version'] as num? ?? json['ledgerVersion'] as num?)?.toInt() ?? 1,
       members: membersList,
     );
   }
@@ -137,10 +137,10 @@ class ExpenseShare {
 
   factory ExpenseShare.fromJson(Map<String, dynamic> json) {
     return ExpenseShare(
-      userId: json['user_id'] ?? json['userId'] ?? '',
-      shareAmount: json['share_amount'] ?? json['shareAmount'] ?? 0,
-      basisPoints: json['basis_points'] ?? json['basisPoints'],
-      shares: json['shares'],
+      userId: json['user_id']?.toString() ?? json['userId']?.toString() ?? '',
+      shareAmount: (json['share_amount'] as num? ?? json['shareAmount'] as num?)?.toInt() ?? 0,
+      basisPoints: (json['basis_points'] as num? ?? json['basisPoints'] as num?)?.toInt(),
+      shares: (json['shares'] as num?)?.toInt(),
     );
   }
 
@@ -194,25 +194,25 @@ class Expense {
   factory Expense.fromJson(Map<String, dynamic> json) {
     final sList = (json['shares'] as List<dynamic>? ??
             json['participants'] as List<dynamic>?)
-            ?.map((s) => ExpenseShare.fromJson(s))
+            ?.map((s) => ExpenseShare.fromJson(s is Map<String, dynamic> ? s : Map<String, dynamic>.from(s)))
             .toList() ??
         [];
     return Expense(
-      id: json['id'] ?? '',
-      groupId: json['group_id'] ?? json['groupId'] ?? '',
-      description: json['description'] ?? '',
-      amount: json['amount'] ?? 0,
-      category: json['category'] ?? 'GENERAL',
-      paidBy: json['paid_by'] ?? json['paidBy'] ?? '',
-      payerName: json['payer_name'] ?? json['payerName'],
-      createdBy: json['created_by'] ?? json['createdBy'] ?? '',
-      isReversed: json['is_reversed'] ?? json['isReversed'] ?? false,
-      isReversal: json['is_reversal'] ?? json['isReversal'] ?? false,
-      reversesExpenseId: json['reverses_expense_id'] ?? json['reversesExpenseId'],
-      currency: json['currency'] ?? 'INR',
-      expenseDate: json['expense_date'] ?? json['expenseDate'] ?? json['created_at'] ?? '',
-      splitType: json['split_type'] ?? json['splitType'] ?? 'EQUAL',
-      createdAt: json['created_at'] ?? json['createdAt'] ?? '',
+      id: json['id']?.toString() ?? '',
+      groupId: json['group_id']?.toString() ?? json['groupId']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
+      category: json['category']?.toString() ?? 'GENERAL',
+      paidBy: json['paid_by']?.toString() ?? json['paidBy']?.toString() ?? '',
+      payerName: json['payer_name']?.toString() ?? json['payerName']?.toString(),
+      createdBy: json['created_by']?.toString() ?? json['createdBy']?.toString() ?? '',
+      isReversed: json['is_reversed'] == true || json['isReversed'] == true,
+      isReversal: json['is_reversal'] == true || json['isReversal'] == true,
+      reversesExpenseId: json['reverses_expense_id']?.toString() ?? json['reversesExpenseId']?.toString(),
+      currency: json['currency']?.toString() ?? 'INR',
+      expenseDate: json['expense_date']?.toString() ?? json['expenseDate']?.toString() ?? json['created_at']?.toString() ?? '',
+      splitType: json['split_type']?.toString() ?? json['splitType']?.toString() ?? 'EQUAL',
+      createdAt: json['created_at']?.toString() ?? json['createdAt']?.toString() ?? '',
       shares: sList,
     );
   }
@@ -254,10 +254,10 @@ class UserBalance {
 
   factory UserBalance.fromJson(Map<String, dynamic> json) {
     return UserBalance(
-      userId: json['user_id'] ?? json['userId'] ?? '',
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      netBalance: json['net_balance'] ?? json['netBalance'] ?? 0,
+      userId: json['user_id']?.toString() ?? json['userId']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      netBalance: (json['net_balance'] as num? ?? json['netBalance'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -281,12 +281,12 @@ class PairwiseDebt {
 
   factory PairwiseDebt.fromJson(Map<String, dynamic> json) {
     return PairwiseDebt(
-      userA: json['user_a'] ?? json['userA'] ?? '',
-      userAName: json['user_a_name'] ?? json['userAName'] ?? '',
-      userB: json['user_b'] ?? json['userB'] ?? '',
-      userBName: json['user_b_name'] ?? json['userBName'] ?? '',
-      netDebt: json['net_debt'] ?? json['netDebt'] ?? 0,
-      explanation: json['explanation'] ?? '',
+      userA: json['user_a']?.toString() ?? json['userA']?.toString() ?? '',
+      userAName: json['user_a_name']?.toString() ?? json['userAName']?.toString() ?? '',
+      userB: json['user_b']?.toString() ?? json['userB']?.toString() ?? '',
+      userBName: json['user_b_name']?.toString() ?? json['userBName']?.toString() ?? '',
+      netDebt: (json['net_debt'] as num? ?? json['netDebt'] as num?)?.toInt() ?? 0,
+      explanation: json['explanation']?.toString() ?? '',
     );
   }
 }
@@ -308,11 +308,11 @@ class RecommendedTransfer {
 
   factory RecommendedTransfer.fromJson(Map<String, dynamic> json) {
     return RecommendedTransfer(
-      fromUser: json['from_user'] ?? json['fromUser'] ?? '',
-      fromUserName: json['from_user_name'] ?? json['fromUserName'] ?? '',
-      toUser: json['to_user'] ?? json['toUser'] ?? '',
-      toUserName: json['to_user_name'] ?? json['toUserName'] ?? '',
-      amount: json['amount'] ?? 0,
+      fromUser: json['from_user']?.toString() ?? json['fromUser']?.toString() ?? '',
+      fromUserName: json['from_user_name']?.toString() ?? json['fromUserName']?.toString() ?? '',
+      toUser: json['to_user']?.toString() ?? json['toUser']?.toString() ?? '',
+      toUserName: json['to_user_name']?.toString() ?? json['toUserName']?.toString() ?? '',
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -352,20 +352,20 @@ class Settlement {
 
   factory Settlement.fromJson(Map<String, dynamic> json) {
     return Settlement(
-      id: json['id'] ?? '',
-      groupId: json['group_id'] ?? json['groupId'] ?? '',
-      fromUser: json['from_user'] ?? json['fromUser'] ?? '',
-      fromUserName: json['from_user_name'] ?? json['fromUserName'] ?? '',
-      toUser: json['to_user'] ?? json['toUser'] ?? '',
-      toUserName: json['to_user_name'] ?? json['toUserName'] ?? '',
-      amount: json['amount'] ?? 0,
-      status: json['status'] ?? 'PAYMENT_RECORDED',
-      recordedBy: json['recorded_by'] ?? json['recordedBy'] ?? '',
-      confirmedBy: json['confirmed_by'] ?? json['confirmedBy'],
-      cancelledBy: json['cancelled_by'] ?? json['cancelledBy'],
-      createdAt: json['created_at'] ?? json['createdAt'] ?? '',
-      confirmedAt: json['confirmed_at'] ?? json['confirmedAt'],
-      cancelledAt: json['cancelled_at'] ?? json['cancelledAt'],
+      id: json['id']?.toString() ?? '',
+      groupId: json['group_id']?.toString() ?? json['groupId']?.toString() ?? '',
+      fromUser: json['from_user']?.toString() ?? json['fromUser']?.toString() ?? '',
+      fromUserName: json['from_user_name']?.toString() ?? json['fromUserName']?.toString() ?? '',
+      toUser: json['to_user']?.toString() ?? json['toUser']?.toString() ?? '',
+      toUserName: json['to_user_name']?.toString() ?? json['toUserName']?.toString() ?? '',
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
+      status: json['status']?.toString() ?? 'PAYMENT_RECORDED',
+      recordedBy: json['recorded_by']?.toString() ?? json['recordedBy']?.toString() ?? '',
+      confirmedBy: json['confirmed_by']?.toString() ?? json['confirmedBy']?.toString(),
+      cancelledBy: json['cancelled_by']?.toString() ?? json['cancelledBy']?.toString(),
+      createdAt: json['created_at']?.toString() ?? json['createdAt']?.toString() ?? '',
+      confirmedAt: json['confirmed_at']?.toString() ?? json['confirmedAt']?.toString(),
+      cancelledAt: json['cancelled_at']?.toString() ?? json['cancelledAt']?.toString(),
     );
   }
 
@@ -406,13 +406,13 @@ class ActivityItem {
 
   factory ActivityItem.fromJson(Map<String, dynamic> json) {
     return ActivityItem(
-      id: json['id'] ?? '',
-      groupId: json['group_id'] ?? json['groupId'] ?? '',
-      actorId: json['actor_id'] ?? json['actorId'] ?? '',
-      actorName: json['actor_name'] ?? json['actorName'] ?? 'Member',
-      action: json['action'] ?? '',
-      summary: json['summary'] ?? '',
-      createdAt: json['created_at'] ?? json['createdAt'] ?? '',
+      id: json['id']?.toString() ?? '',
+      groupId: json['group_id']?.toString() ?? json['groupId']?.toString() ?? '',
+      actorId: json['actor_id']?.toString() ?? json['actorId']?.toString() ?? '',
+      actorName: json['actor_name']?.toString() ?? json['actorName']?.toString() ?? 'Member',
+      action: json['action']?.toString() ?? '',
+      summary: json['summary']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ?? json['createdAt']?.toString() ?? '',
     );
   }
 }
@@ -436,12 +436,12 @@ class PersonalExpense {
 
   factory PersonalExpense.fromJson(Map<String, dynamic> json) {
     return PersonalExpense(
-      id: json['id'] ?? '',
-      description: json['description'] ?? '',
-      amount: json['amount'] ?? 0,
-      category: json['category'] ?? 'GENERAL',
-      date: json['date'] ?? '',
-      createdAt: json['createdAt'] ?? DateTime.now().millisecondsSinceEpoch,
+      id: json['id']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
+      category: json['category']?.toString() ?? 'GENERAL',
+      date: json['date']?.toString() ?? '',
+      createdAt: (json['createdAt'] as num?)?.toInt() ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 

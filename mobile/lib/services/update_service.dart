@@ -23,7 +23,7 @@ class UpdateInfo {
 }
 
 class UpdateService {
-  static const String currentVersion = 'v0.0.3';
+  static const String currentVersion = 'v0.0.4';
   static const String repoOwner = 'Suvesh108';
   static const String repoName = 'Settlr';
   static const MethodChannel _platform = MethodChannel('com.settlr.updater');

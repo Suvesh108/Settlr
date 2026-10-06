@@ -27,6 +27,9 @@ class ApiService {
 
   static Future<void> setServerUrl(String url) async {
     _baseUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
+    if (!_baseUrl.endsWith('/api/v1')) {
+      _baseUrl = '$_baseUrl/api/v1';
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('server_base_url', _baseUrl);
   }
@@ -46,6 +49,16 @@ class ApiService {
     await prefs.remove('access_token');
     await prefs.remove('user_data');
     await prefs.remove('active_group_id');
+  }
+
+  static Future<String?> getActiveGroupId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('active_group_id');
+  }
+
+  static Future<void> setActiveGroupId(String groupId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('active_group_id', groupId);
   }
 
   static Map<String, String> _headers() {
@@ -149,15 +162,12 @@ class ApiService {
         final resJson = jsonDecode(response.body);
         final List<dynamic> list = resJson['data'] ?? [];
         final remoteGroups = list.map((g) => Group.fromJson(g)).toList();
-        if (remoteGroups.isNotEmpty) {
-          // Cache remotely fetched groups
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(
-            'local_groups',
-            jsonEncode(remoteGroups.map((g) => g.toJson()).toList()),
-          );
-          return remoteGroups;
-        }
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+          'local_groups',
+          jsonEncode(remoteGroups.map((g) => g.toJson()).toList()),
+        );
+        return remoteGroups;
       }
     } catch (_) {}
 
@@ -169,24 +179,6 @@ class ApiService {
     required String description,
     required String currency,
   }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/groups'),
-        headers: _headers(),
-        body: jsonEncode({
-          'name': name,
-          'description': description,
-          'currency': currency,
-        }),
-      ).timeout(const Duration(milliseconds: 2500));
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final resJson = jsonDecode(response.body);
-        return Group.fromJson(resJson['data']);
-      }
-    } catch (_) {}
-
-    // Offline group creation
     final newGroup = Group(
       id: 'grp_${DateTime.now().millisecondsSinceEpoch}',
       name: name,
@@ -207,10 +199,34 @@ class ApiService {
       ],
     );
 
+    // Save locally first
     final prefs = await SharedPreferences.getInstance();
     final cached = await getCachedGroups();
     cached.insert(0, newGroup);
     await prefs.setString('local_groups', jsonEncode(cached.map((g) => g.toJson()).toList()));
+    await setActiveGroupId(newGroup.id);
+
+    // Try remote
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/groups'),
+        headers: _headers(),
+        body: jsonEncode({
+          'name': name,
+          'description': description,
+          'currency': currency,
+        }),
+      ).timeout(const Duration(milliseconds: 2500));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final resJson = jsonDecode(response.body);
+        final remoteGroup = Group.fromJson(resJson['data']);
+        cached[0] = remoteGroup;
+        await prefs.setString('local_groups', jsonEncode(cached.map((g) => g.toJson()).toList()));
+        await setActiveGroupId(remoteGroup.id);
+        return remoteGroup;
+      }
+    } catch (_) {}
 
     return newGroup;
   }
@@ -225,7 +241,11 @@ class ApiService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final resJson = jsonDecode(response.body);
-        return resJson['data']?['group_id'] ?? '';
+        final groupId = resJson['data']?['group_id']?.toString() ?? '';
+        if (groupId.isNotEmpty) {
+          await setActiveGroupId(groupId);
+        }
+        return groupId;
       }
     } catch (_) {}
 
@@ -233,31 +253,34 @@ class ApiService {
   }
 
   static Future<void> deleteGroup(String groupId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final cached = await getCachedGroups();
+    cached.removeWhere((g) => g.id == groupId);
+    await prefs.setString('local_groups', jsonEncode(cached.map((g) => g.toJson()).toList()));
+    await prefs.remove('local_expenses_$groupId');
+    await prefs.remove('local_settlements_$groupId');
+    await prefs.remove('local_activity_$groupId');
+
     try {
       await http.delete(
         Uri.parse('$_baseUrl/groups/$groupId'),
         headers: _headers(),
       ).timeout(const Duration(milliseconds: 2500));
     } catch (_) {}
+  }
 
+  static Future<void> leaveGroup(String groupId) async {
     final prefs = await SharedPreferences.getInstance();
     final cached = await getCachedGroups();
     cached.removeWhere((g) => g.id == groupId);
     await prefs.setString('local_groups', jsonEncode(cached.map((g) => g.toJson()).toList()));
-  }
 
-  static Future<void> leaveGroup(String groupId) async {
     try {
       await http.post(
         Uri.parse('$_baseUrl/groups/$groupId/leave'),
         headers: _headers(),
       ).timeout(const Duration(milliseconds: 2500));
     } catch (_) {}
-
-    final prefs = await SharedPreferences.getInstance();
-    final cached = await getCachedGroups();
-    cached.removeWhere((g) => g.id == groupId);
-    await prefs.setString('local_groups', jsonEncode(cached.map((g) => g.toJson()).toList()));
   }
 
   // ── Expenses Management ────────────────────────────────────────────────────
@@ -285,14 +308,12 @@ class ApiService {
         final resJson = jsonDecode(response.body);
         final List<dynamic> list = resJson['data'] ?? [];
         final remote = list.map((e) => Expense.fromJson(e)).toList();
-        if (remote.isNotEmpty) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(
-            'local_expenses_$groupId',
-            jsonEncode(remote.map((e) => e.toJson()).toList()),
-          );
-          return remote;
-        }
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+          'local_expenses_$groupId',
+          jsonEncode(remote.map((e) => e.toJson()).toList()),
+        );
+        return remote;
       }
     } catch (_) {}
 
@@ -308,25 +329,7 @@ class ApiService {
     required String paidBy,
     required List<Map<String, dynamic>> participants,
   }) async {
-    // 1. Try remote
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/groups/$groupId/expenses'),
-        headers: _headers(),
-        body: jsonEncode({
-          'description': description,
-          'amount': amount,
-          'category': category,
-          'paid_by': paidBy,
-          'split_type': splitType,
-          'participants': participants,
-        }),
-      ).timeout(const Duration(milliseconds: 2500));
-
-      if (response.statusCode < 300) return;
-    } catch (_) {}
-
-    // 2. Offline local storage
+    // 1. Save in local cache first for instant responsiveness
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString('local_expenses_$groupId');
     List<dynamic> list = [];
@@ -370,18 +373,26 @@ class ApiService {
       action: 'EXPENSE_CREATE',
       summary: 'added "$description" for ₹${(amount / 100).toStringAsFixed(2)}',
     );
+
+    // 2. Sync to remote
+    try {
+      await http.post(
+        Uri.parse('$_baseUrl/groups/$groupId/expenses'),
+        headers: _headers(),
+        body: jsonEncode({
+          'description': description,
+          'amount': amount,
+          'category': category,
+          'paid_by': paidBy,
+          'split_type': splitType,
+          'participants': participants,
+        }),
+      ).timeout(const Duration(milliseconds: 2500));
+    } catch (_) {}
   }
 
   static Future<void> reverseExpense(String groupId, String expenseId) async {
-    try {
-      await http.post(
-        Uri.parse('$_baseUrl/groups/$groupId/expenses/$expenseId/reverse'),
-        headers: _headers(),
-      ).timeout(const Duration(milliseconds: 2500));
-      return;
-    } catch (_) {}
-
-    // Offline reversal
+    // 1. Update local cache
     final prefs = await SharedPreferences.getInstance();
     final expenses = await getCachedExpenses(groupId);
     final idx = expenses.indexWhere((e) => e.id == expenseId);
@@ -406,7 +417,21 @@ class ApiService {
         shares: old.shares,
       );
       await prefs.setString('local_expenses_$groupId', jsonEncode(expenses.map((e) => e.toJson()).toList()));
+
+      await _addLocalActivity(
+        groupId: groupId,
+        action: 'EXPENSE_REVERSE',
+        summary: 'reversed "${old.description}"',
+      );
     }
+
+    // 2. Sync to remote
+    try {
+      await http.post(
+        Uri.parse('$_baseUrl/groups/$groupId/expenses/$expenseId/reverse'),
+        headers: _headers(),
+      ).timeout(const Duration(milliseconds: 2500));
+    } catch (_) {}
   }
 
   // ── Balances & Debt Matrix ─────────────────────────────────────────────────
@@ -421,7 +446,9 @@ class ApiService {
       if (response.statusCode == 200) {
         final resJson = jsonDecode(response.body);
         final List<dynamic> list = resJson['balances'] ?? [];
-        return list.map((b) => UserBalance.fromJson(b)).toList();
+        if (list.isNotEmpty) {
+          return list.map((b) => UserBalance.fromJson(b)).toList();
+        }
       }
     } catch (_) {}
 
@@ -466,10 +493,18 @@ class ApiService {
         netBalance: netMap[m.userId] ?? 0,
       ));
     }
+    if (_currentUser != null && !result.any((r) => r.userId == _currentUser!.id)) {
+      result.add(UserBalance(
+        userId: _currentUser!.id,
+        name: _currentUser!.name,
+        email: _currentUser!.email,
+        netBalance: netMap[_currentUser!.id] ?? 0,
+      ));
+    }
     return result;
   }
 
-  static Future<List<PairwiseDebt>> getPairwiseDebts(String groupId) async {
+  static Future<List<PairwiseDebt>> getPairwiseDebts(String groupId, [Group? group]) async {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl/groups/$groupId/balances/pairwise'),
@@ -479,11 +514,85 @@ class ApiService {
       if (response.statusCode == 200) {
         final resJson = jsonDecode(response.body);
         final List<dynamic> list = resJson['pairwise'] ?? [];
-        return list.map((p) => PairwiseDebt.fromJson(p)).toList();
+        if (list.isNotEmpty) {
+          return list.map((p) => PairwiseDebt.fromJson(p)).toList();
+        }
       }
     } catch (_) {}
 
-    return [];
+    return _computePairwiseDebtsOffline(groupId, group);
+  }
+
+  static Future<List<PairwiseDebt>> _computePairwiseDebtsOffline(String groupId, Group? group) async {
+    final expenses = await getCachedExpenses(groupId);
+    final settlements = await getCachedSettlements(groupId);
+    final members = group?.members ?? [];
+
+    final Map<String, String> userNames = {};
+    for (final m in members) {
+      userNames[m.userId] = m.name;
+    }
+    if (_currentUser != null) {
+      userNames[_currentUser!.id] = _currentUser!.name;
+    }
+
+    // grossDebt[A][B] = amount that B owes A directly
+    final Map<String, Map<String, int>> grossDebt = {};
+
+    for (final exp in expenses) {
+      if (exp.isReversed || exp.isReversal) continue;
+      final payer = exp.paidBy;
+      if (exp.payerName != null && !userNames.containsKey(payer)) {
+        userNames[payer] = exp.payerName!;
+      }
+
+      grossDebt.putIfAbsent(payer, () => {});
+      for (final s in exp.shares) {
+        if (s.userId == payer) continue;
+        grossDebt[payer]![s.userId] = (grossDebt[payer]![s.userId] ?? 0) + s.shareAmount;
+      }
+    }
+
+    for (final s in settlements) {
+      if (s.status != 'CONFIRMED') continue;
+      grossDebt.putIfAbsent(s.toUser, () => {});
+      grossDebt[s.toUser]![s.fromUser] = (grossDebt[s.toUser]![s.fromUser] ?? 0) - s.amount;
+    }
+
+    final allUserIds = <String>{...userNames.keys, ...grossDebt.keys};
+    for (final map in grossDebt.values) {
+      allUserIds.addAll(map.keys);
+    }
+    final sortedUserIds = allUserIds.toList()..sort();
+
+    final List<PairwiseDebt> details = [];
+    for (int i = 0; i < sortedUserIds.length; i++) {
+      for (int j = i + 1; j < sortedUserIds.length; j++) {
+        final uA = sortedUserIds[i];
+        final uB = sortedUserIds[j];
+
+        final bOwesA = grossDebt[uA]?[uB] ?? 0;
+        final aOwesB = grossDebt[uB]?[uA] ?? 0;
+        final net = bOwesA - aOwesB;
+
+        if (net != 0) {
+          final nameA = userNames[uA] ?? 'Member';
+          final nameB = userNames[uB] ?? 'Member';
+          final explanation = net > 0 ? '$nameB owes $nameA' : '$nameA owes $nameB';
+
+          details.add(PairwiseDebt(
+            userA: uA,
+            userAName: nameA,
+            userB: uB,
+            userBName: nameB,
+            netDebt: net,
+            explanation: explanation,
+          ));
+        }
+      }
+    }
+
+    return details;
   }
 
   static Future<List<RecommendedTransfer>> getRecommendedSettlements(
@@ -584,7 +693,7 @@ class ApiService {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(
           'local_settlements_$groupId',
-          jsonEncode(remote.map((s) => s.toJson()).toList()),
+          jsonEncode(remote.map((e) => e.toJson()).toList()),
         );
         return remote;
       }
@@ -599,20 +708,7 @@ class ApiService {
     required String toUserName,
     required int amount,
   }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/groups/$groupId/settlements'),
-        headers: _headers(),
-        body: jsonEncode({
-          'to_user': toUser,
-          'amount': amount,
-        }),
-      ).timeout(const Duration(milliseconds: 2500));
-
-      if (response.statusCode < 300) return;
-    } catch (_) {}
-
-    // Offline recording
+    // 1. Offline recording first
     final prefs = await SharedPreferences.getInstance();
     final list = await getCachedSettlements(groupId);
     final newSettlement = Settlement(
@@ -638,18 +734,22 @@ class ApiService {
       action: 'SETTLEMENT_RECORD',
       summary: 'recorded payment of ₹${(amount / 100).toStringAsFixed(2)} to $toUserName',
     );
+
+    // 2. Remote sync
+    try {
+      await http.post(
+        Uri.parse('$_baseUrl/groups/$groupId/settlements'),
+        headers: _headers(),
+        body: jsonEncode({
+          'to_user': toUser,
+          'amount': amount,
+        }),
+      ).timeout(const Duration(milliseconds: 2500));
+    } catch (_) {}
   }
 
   static Future<void> confirmSettlement(String groupId, String settlementId) async {
-    try {
-      await http.post(
-        Uri.parse('$_baseUrl/groups/$groupId/settlements/$settlementId/confirm'),
-        headers: _headers(),
-      ).timeout(const Duration(milliseconds: 2500));
-      return;
-    } catch (_) {}
-
-    // Offline confirmation
+    // 1. Local update
     final prefs = await SharedPreferences.getInstance();
     final list = await getCachedSettlements(groupId);
     final idx = list.indexWhere((s) => s.id == settlementId);
@@ -673,10 +773,36 @@ class ApiService {
         'local_settlements_$groupId',
         jsonEncode(list.map((s) => s.toJson()).toList()),
       );
+
+      await _addLocalActivity(
+        groupId: groupId,
+        action: 'SETTLEMENT_CONFIRM',
+        summary: 'confirmed payment of ₹${(old.amount / 100).toStringAsFixed(2)} from ${old.fromUserName}',
+      );
     }
+
+    // 2. Remote sync
+    try {
+      await http.post(
+        Uri.parse('$_baseUrl/groups/$groupId/settlements/$settlementId/confirm'),
+        headers: _headers(),
+      ).timeout(const Duration(milliseconds: 2500));
+    } catch (_) {}
   }
 
   // ── Activity Log ───────────────────────────────────────────────────────────
+
+  static Future<List<ActivityItem>> getCachedActivity(String groupId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('local_activity_$groupId');
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final List<dynamic> list = jsonDecode(raw);
+        return list.map((a) => ActivityItem.fromJson(a)).toList();
+      } catch (_) {}
+    }
+    return [];
+  }
 
   static Future<List<ActivityItem>> getActivity(String groupId) async {
     try {
@@ -688,20 +814,17 @@ class ApiService {
       if (response.statusCode == 200) {
         final resJson = jsonDecode(response.body);
         final List<dynamic> list = resJson['data'] ?? [];
-        return list.map((a) => ActivityItem.fromJson(a)).toList();
+        final remote = list.map((a) => ActivityItem.fromJson(a)).toList();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+          'local_activity_$groupId',
+          jsonEncode(remote.map((a) => a.toJson()).toList()),
+        );
+        return remote;
       }
     } catch (_) {}
 
-    // Offline activities
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('local_activity_$groupId');
-    if (raw != null && raw.isNotEmpty) {
-      try {
-        final List<dynamic> list = jsonDecode(raw);
-        return list.map((a) => ActivityItem.fromJson(a)).toList();
-      } catch (_) {}
-    }
-    return [];
+    return getCachedActivity(groupId);
   }
 
   static Future<void> _addLocalActivity({

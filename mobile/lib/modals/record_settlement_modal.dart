@@ -112,181 +112,215 @@ class _RecordSettlementModalState extends State<RecordSettlementModal> {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE5E5E5),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Record Settlement', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: SettlrColors.textMain)),
-                  const SizedBox(height: 2),
-                  const Text('Log an off-platform payment between members', style: TextStyle(fontSize: 11, color: SettlrColors.textMuted)),
-                ],
-              ),
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
+              Center(
                 child: Container(
-                  width: 28,
-                  height: 28,
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(14),
+                    color: const Color(0xFFE5E5E5),
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  child: const Icon(Icons.close, size: 16, color: SettlrColors.textMuted),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          if (_error != null) ...[
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: SettlrColors.negativeBg,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: SettlrColors.negative.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline, size: 16, color: SettlrColors.negative),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(_error!, style: const TextStyle(fontSize: 12, color: SettlrColors.negative))),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-          ],
-
-          // Recipient Selector
-          const Text('Recipient', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: SettlrColors.textMuted)),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAFAFA),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE5E5E5)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _toUser.isNotEmpty ? _toUser : null,
-                isExpanded: true,
-                hint: const Text('Select member to pay...'),
-                style: const TextStyle(fontSize: 13, color: SettlrColors.textMain, fontWeight: FontWeight.w500),
-                items: eligible.map((m) => DropdownMenuItem(value: m.userId, child: Text(m.name))).toList(),
-                onChanged: (v) => setState(() => _toUser = v ?? _toUser),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Direct Debt Position
-          if (_toUser.isNotEmpty) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFAFAFA),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE5E5E5)),
-              ),
-              child: Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Direct debt position:', style: TextStyle(fontSize: 12, color: SettlrColors.textMuted)),
-                  Text(
-                    directDebt > 0
-                        ? '$symbol${(directDebt / 100).toStringAsFixed(2)} (You owe)'
-                        : directDebt < 0
-                            ? '$symbol${(-directDebt / 100).toStringAsFixed(2)} (Owed to you)'
-                            : '$symbol 0.00 (No debt)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: directDebt > 0 ? SettlrColors.negative : directDebt < 0 ? SettlrColors.positive : SettlrColors.textMain,
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Record Settlement', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: SettlrColors.textMain)),
+                      SizedBox(height: 2),
+                      Text('Log an off-platform payment between members', style: TextStyle(fontSize: 11, color: SettlrColors.textMuted)),
+                    ],
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.close, size: 16, color: SettlrColors.textMuted),
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 12),
-          ],
+              const SizedBox(height: 16),
 
-          // Amount Paid
-          Text('Amount Paid ($currency)', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: SettlrColors.textMuted)),
-          const SizedBox(height: 6),
-          TextField(
-            controller: _amtCtrl,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            decoration: InputDecoration(
-              hintText: '0.00',
-              filled: true,
-              fillColor: const Color(0xFFFAFAFA),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E5E5))),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E5E5))),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: SettlrColors.textMain, width: 1.5)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            ),
-          ),
-          const SizedBox(height: 12),
+              if (_error != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: SettlrColors.negativeBg,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: SettlrColors.negative.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, size: 16, color: SettlrColors.negative),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(_error!, style: const TextStyle(fontSize: 12, color: SettlrColors.negative))),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
 
-          // Info Notice
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFBEB),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFFDE68A)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.info_outline, size: 14, color: Color(0xFFB45309)),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Marked as Recorded until the recipient confirms receipt.',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF92400E)),
+              if (eligible.isEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFAFA),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5E5E5)),
+                  ),
+                  child: const Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.group_outlined, size: 24, color: SettlrColors.textMuted),
+                        SizedBox(height: 8),
+                        Text(
+                          'No other members in this group',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: SettlrColors.textMain),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Share your group invite code from Group Settings so roommates or friends can join and settle up.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 11, color: SettlrColors.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ] else ...[
+                // Recipient Selector
+                const Text('Recipient', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: SettlrColors.textMuted)),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFAFA),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5E5E5)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _toUser.isNotEmpty ? _toUser : null,
+                      isExpanded: true,
+                      hint: const Text('Select member to pay...'),
+                      style: const TextStyle(fontSize: 13, color: SettlrColors.textMain, fontWeight: FontWeight.w500),
+                      items: eligible.map((m) => DropdownMenuItem(value: m.userId, child: Text(m.name))).toList(),
+                      onChanged: (v) => setState(() => _toUser = v ?? _toUser),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Direct Debt Position
+                if (_toUser.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAFAFA),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE5E5E5)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Direct debt position:', style: TextStyle(fontSize: 12, color: SettlrColors.textMuted)),
+                        Text(
+                          directDebt > 0
+                              ? '$symbol${(directDebt / 100).toStringAsFixed(2)} (You owe)'
+                              : directDebt < 0
+                                  ? '$symbol${(-directDebt / 100).toStringAsFixed(2)} (Owed to you)'
+                                  : '$symbol 0.00 (No debt)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: directDebt > 0 ? SettlrColors.negative : directDebt < 0 ? SettlrColors.positive : SettlrColors.textMain,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Amount Paid
+                Text('Amount Paid ($currency)', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: SettlrColors.textMuted)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _amtCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  decoration: InputDecoration(
+                    hintText: '0.00',
+                    filled: true,
+                    fillColor: const Color(0xFFFAFAFA),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E5E5))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E5E5))),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: SettlrColors.textMain, width: 1.5)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Info Notice
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFFDE68A)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 14, color: Color(0xFFB45309)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Marked as Recorded until the recipient confirms receipt.',
+                          style: TextStyle(fontSize: 11, color: Color(0xFF92400E)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Submit Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: SettlrColors.primary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: _loading ? null : _handleSubmit,
+                    child: _loading
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Record Payment Claim', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                   ),
                 ),
               ],
-            ),
+            ],
           ),
-          const SizedBox(height: 18),
-
-          // Submit Button
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: SettlrColors.primary,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              onPressed: _loading ? null : _handleSubmit,
-              child: _loading
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Record Payment Claim', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

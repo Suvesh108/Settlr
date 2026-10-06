@@ -26,7 +26,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _submit() async {
     final name = _nameController.text.trim();
-    if (name.isEmpty) return;
+    if (name.isEmpty) {
+      setState(() => _error = 'Please enter your name to continue.');
+      return;
+    }
 
     setState(() {
       _isLoading = true;

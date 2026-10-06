@@ -52,51 +52,75 @@ class _HomeScreenState extends State<HomeScreen> {
     // 1. Instant Cache-First Load
     final cachedGroups = await ApiService.getCachedGroups();
     final cachedPersonal = await ApiService.getPersonalExpenses();
+    final savedGroupId = await ApiService.getActiveGroupId();
 
     if (!mounted) return;
 
     if (cachedGroups.isEmpty) {
-      setState(() => _isFirstLoad = true);
-    } else {
       setState(() {
-        _groups = cachedGroups;
-        _activeGroup = cachedGroups.first;
+        _groups = [];
         _personalExpenses = cachedPersonal;
         _isFirstLoad = false;
       });
+    } else {
+      final active = (savedGroupId != null && cachedGroups.any((g) => g.id == savedGroupId))
+          ? cachedGroups.firstWhere((g) => g.id == savedGroupId)
+          : cachedGroups.first;
 
-      final cachedExp = await ApiService.getCachedExpenses(cachedGroups.first.id);
-      final cachedStl = await ApiService.getCachedSettlements(cachedGroups.first.id);
+      final cachedExp = await ApiService.getCachedExpenses(active.id);
+      final cachedStl = await ApiService.getCachedSettlements(active.id);
+      final cachedAct = await ApiService.getCachedActivity(active.id);
+
+      // Compute balances, pairwise debts, and transfers from cache immediately (no zero-flicker)
+      final localBals = await ApiService.getBalances(active.id, active);
+      final localDebts = await ApiService.getPairwiseDebts(active.id, active);
+      final localTransfers = await ApiService.getRecommendedSettlements(active.id, localBals);
+
       if (mounted) {
         setState(() {
+          _groups = cachedGroups;
+          _activeGroup = active;
+          _personalExpenses = cachedPersonal;
           _expenses = cachedExp;
           _settlements = cachedStl;
+          _activities = cachedAct;
+          _balances = localBals;
+          _pairwise = localDebts;
+          _transfers = localTransfers;
+          _isFirstLoad = false;
         });
       }
     }
 
     // 2. Silent Background Server Sync
-    _syncServerData();
+    _syncServerData(isUserInitiated: false);
   }
 
-  Future<void> _syncServerData() async {
-    if (mounted) setState(() => _isRefreshing = true);
+  Future<void> _syncServerData({bool isUserInitiated = false}) async {
+    if (isUserInitiated && mounted) {
+      setState(() => _isRefreshing = true);
+    }
 
     try {
       final remoteGroups = await ApiService.getGroups();
       final personal = await ApiService.getPersonalExpenses();
+      final savedGroupId = await ApiService.getActiveGroupId();
 
       if (!mounted) return;
       setState(() {
         _groups = remoteGroups;
         _personalExpenses = personal;
-        if (_activeGroup == null && remoteGroups.isNotEmpty) {
-          _activeGroup = remoteGroups.first;
-        } else if (_activeGroup != null && remoteGroups.isNotEmpty) {
-          _activeGroup = remoteGroups.firstWhere(
-            (g) => g.id == _activeGroup!.id,
-            orElse: () => remoteGroups.first,
-          );
+        if (remoteGroups.isNotEmpty) {
+          if (_activeGroup == null) {
+            _activeGroup = (savedGroupId != null && remoteGroups.any((g) => g.id == savedGroupId))
+                ? remoteGroups.firstWhere((g) => g.id == savedGroupId)
+                : remoteGroups.first;
+          } else {
+            _activeGroup = remoteGroups.firstWhere(
+              (g) => g.id == _activeGroup!.id,
+              orElse: () => remoteGroups.first,
+            );
+          }
         }
         _isFirstLoad = false;
       });
@@ -107,18 +131,28 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       if (mounted) setState(() => _isFirstLoad = false);
     } finally {
-      if (mounted) setState(() => _isRefreshing = false);
+      if (isUserInitiated && mounted) {
+        setState(() => _isRefreshing = false);
+      }
     }
   }
 
   Future<void> _fetchActiveGroupDetails(String groupId) async {
     try {
-      final exp = await ApiService.getExpenses(groupId);
-      final bals = await ApiService.getBalances(groupId, _activeGroup);
-      final debts = await ApiService.getPairwiseDebts(groupId);
+      final results = await Future.wait([
+        ApiService.getExpenses(groupId),
+        ApiService.getBalances(groupId, _activeGroup),
+        ApiService.getPairwiseDebts(groupId, _activeGroup),
+        ApiService.getSettlements(groupId),
+        ApiService.getActivity(groupId),
+      ]);
+
+      final exp = results[0] as List<Expense>;
+      final bals = results[1] as List<UserBalance>;
+      final debts = results[2] as List<PairwiseDebt>;
+      final stls = results[3] as List<Settlement>;
+      final acts = results[4] as List<ActivityItem>;
       final recs = await ApiService.getRecommendedSettlements(groupId, bals);
-      final stls = await ApiService.getSettlements(groupId);
-      final acts = await ApiService.getActivity(groupId);
 
       if (!mounted) return;
       setState(() {
@@ -132,23 +166,40 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {}
   }
 
-  void _switchGroup(Group g) {
-    setState(() {
-      _activeGroup = g;
-      _expenses = [];
-      _balances = [];
-      _pairwise = [];
-      _transfers = [];
-      _settlements = [];
-      _activities = [];
-    });
+  Future<void> _switchGroup(Group g) async {
+    await ApiService.setActiveGroupId(g.id);
+
+    // 1. Immediately load local cache for the selected group to prevent blank screen flicker
+    final cachedExp = await ApiService.getCachedExpenses(g.id);
+    final cachedStl = await ApiService.getCachedSettlements(g.id);
+    final cachedAct = await ApiService.getCachedActivity(g.id);
+    final localBals = await ApiService.getBalances(g.id, g);
+    final localDebts = await ApiService.getPairwiseDebts(g.id, g);
+    final localTransfers = await ApiService.getRecommendedSettlements(g.id, localBals);
+
+    if (mounted) {
+      setState(() {
+        _activeGroup = g;
+        _expenses = cachedExp;
+        _settlements = cachedStl;
+        _activities = cachedAct;
+        _balances = localBals;
+        _pairwise = localDebts;
+        _transfers = localTransfers;
+      });
+    }
+
+    // 2. Refresh from server in background
     _fetchActiveGroupDetails(g.id);
   }
 
   // ── Modals Trigger ─────────────────────────────────────────────────────────
 
   void _openAddExpenseModal() {
-    if (_activeGroup == null) return;
+    if (_activeGroup == null) {
+      _openCreateGroupModal();
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -338,10 +389,20 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: SettlrColors.primary,
         elevation: 0,
-        onPressed: _currentTab == 0 ? _openAddExpenseModal : _openAddPersonalExpenseModal,
+        onPressed: () {
+          if (_currentTab == 0) {
+            if (_groups.isEmpty) {
+              _openCreateGroupModal();
+            } else {
+              _openAddExpenseModal();
+            }
+          } else {
+            _openAddPersonalExpenseModal();
+          }
+        },
         icon: const Icon(Icons.add, color: Colors.white, size: 18),
         label: Text(
-          _currentTab == 0 ? 'Add Expense' : 'Add Personal',
+          _currentTab == 0 ? (_groups.isEmpty ? 'Create Group' : 'Add Expense') : 'Add Personal',
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -406,9 +467,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  user?.name ?? 'User',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: SettlrColors.textMain),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 85),
+                  child: Text(
+                    user?.name ?? 'User',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: SettlrColors.textMain),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -438,7 +503,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return RefreshIndicator(
       color: SettlrColors.primary,
-      onRefresh: _syncServerData,
+      onRefresh: () => _syncServerData(isUserInitiated: true),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
         children: [
@@ -1176,11 +1241,22 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(exp.description, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: SettlrColors.textMain)),
-                            Text('Paid by ${exp.payerName ?? 'Member'} · ${exp.expenseDate}', style: const TextStyle(fontSize: 11, color: SettlrColors.textMuted)),
+                            Text(
+                              exp.description,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: SettlrColors.textMain),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'Paid by ${exp.payerName ?? 'Member'} · ${exp.expenseDate}',
+                              style: const TextStyle(fontSize: 11, color: SettlrColors.textMuted),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ],
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         '$symbol${(exp.amount / 100).toStringAsFixed(2)}',
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: SettlrColors.textMain),
@@ -1572,11 +1648,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(e.description, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: SettlrColors.textMain)),
+                              Text(
+                                e.description,
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: SettlrColors.textMain),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                               Text('${e.date} · ${e.category}', style: const TextStyle(fontSize: 11, color: SettlrColors.textMuted)),
                             ],
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
                           '$symbol${(e.amount / 100).toStringAsFixed(2)}',
                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: SettlrColors.textMain),
@@ -1584,9 +1666,26 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(width: 8),
                         GestureDetector(
                           onTap: () async {
-                            await ApiService.deletePersonalExpense(e.id);
-                            final updated = await ApiService.getPersonalExpenses();
-                            if (mounted) setState(() => _personalExpenses = updated);
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Delete Expense?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                content: Text('Are you sure you want to delete "${e.description}"?'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: SettlrColors.negative),
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirmed == true) {
+                              await ApiService.deletePersonalExpense(e.id);
+                              final updated = await ApiService.getPersonalExpenses();
+                              if (mounted) setState(() => _personalExpenses = updated);
+                            }
                           },
                           child: const Padding(
                             padding: EdgeInsets.all(4),
@@ -1667,6 +1766,20 @@ class _ProfileSheetState extends State<_ProfileSheet> {
   String? _updateStatusMessage;
   UpdateInfo? _availableUpdate;
 
+  final _serverUrlCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _serverUrlCtrl.text = ApiService.baseUrl.replaceAll('/api/v1', '');
+  }
+
+  @override
+  void dispose() {
+    _serverUrlCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _handleCheckUpdate() async {
     setState(() { _isCheckingUpdate = true; _updateStatusMessage = null; });
     try {
@@ -1714,202 +1827,267 @@ class _ProfileSheetState extends State<_ProfileSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(context).viewInsets.bottom + 24),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(color: const Color(0xFFE5E5E5), borderRadius: BorderRadius.circular(2)),
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(color: const Color(0xFFE5E5E5), borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(color: SettlrColors.primary, borderRadius: BorderRadius.circular(20)),
-                    child: Center(
-                      child: Text(
-                        widget.user?.name.isNotEmpty == true ? widget.user!.name[0].toUpperCase() : 'U',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      Text(widget.user?.name ?? 'User', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: SettlrColors.textMain)),
-                      Text(widget.user?.email ?? 'Personal settings & profile', style: const TextStyle(color: SettlrColors.textMuted, fontSize: 11)),
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(color: SettlrColors.primary, borderRadius: BorderRadius.circular(20)),
+                        child: Center(
+                          child: Text(
+                            widget.user?.name.isNotEmpty == true ? widget.user!.name[0].toUpperCase() : 'U',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(widget.user?.name ?? 'User', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: SettlrColors.textMain)),
+                          Text(widget.user?.email ?? 'Personal settings & profile', style: const TextStyle(color: SettlrColors.textMuted, fontSize: 11)),
+                        ],
+                      ),
                     ],
                   ),
+                  IconButton(icon: const Icon(Icons.close, color: SettlrColors.textMuted), onPressed: () => Navigator.pop(context)),
                 ],
               ),
-              IconButton(icon: const Icon(Icons.close, color: SettlrColors.textMuted), onPressed: () => Navigator.pop(context)),
-            ],
-          ),
-          const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-          // App Updates Section
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAFAFA),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: SettlrColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // Server Backend Connection Config
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAFAFA),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: SettlrColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.dns_outlined, size: 16, color: SettlrColors.textMain),
+                        SizedBox(width: 8),
+                        Text('Server Backend URL', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: SettlrColors.textMain)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text('Change host for physical Android devices on local Wi-Fi.', style: TextStyle(fontSize: 11, color: SettlrColors.textMuted)),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: SettlrColors.border),
+                        Expanded(
+                          child: TextField(
+                            controller: _serverUrlCtrl,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              hintText: 'http://10.0.2.2:8080 or LAN IP',
+                            ),
                           ),
-                          child: const Icon(Icons.system_update_alt_rounded, size: 18, color: SettlrColors.primary),
                         ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('App Updates', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: SettlrColors.textMain)),
-                            Text('v${UpdateService.currentVersion}', style: const TextStyle(fontSize: 11, color: SettlrColors.textMuted)),
-                          ],
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: SettlrColors.primary,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () async {
+                            await ApiService.setServerUrl(_serverUrlCtrl.text.trim());
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Server URL updated successfully')),
+                              );
+                            }
+                          },
+                          child: const Text('Save', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: SettlrColors.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      ),
-                      onPressed: (_isCheckingUpdate || _isDownloading) ? null : _handleCheckUpdate,
-                      child: _isCheckingUpdate
-                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Check', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                    ),
                   ],
                 ),
-                if (_updateStatusMessage != null) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    _updateStatusMessage!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: _availableUpdate != null ? SettlrColors.positive : SettlrColors.textMuted,
-                    ),
-                  ),
-                ],
-                if (_availableUpdate != null) ...[
-                  const SizedBox(height: 12),
-                  if (_isDownloading)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: _downloadProgress > 0 ? _downloadProgress : null,
-                        minHeight: 8,
-                        backgroundColor: const Color(0xFFE5E7EB),
-                        color: SettlrColors.positive,
-                      ),
-                    )
-                  else
-                    SizedBox(
-                      width: double.infinity,
-                      height: 42,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: SettlrColors.positive,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: _handleDownloadAndInstall,
-                        icon: const Icon(Icons.download_rounded, size: 18),
-                        label: Text('Download & Install ${_availableUpdate!.latestVersion}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      ),
-                    ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
+              ),
+              const SizedBox(height: 14),
 
-          if (_showConfirmLogout)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: SettlrColors.negativeBg,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: SettlrColors.negative.withOpacity(0.25)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.warning_amber_rounded, size: 20, color: SettlrColors.negative),
-                      SizedBox(width: 8),
-                      Text('Confirm Account Log Out', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: SettlrColors.negative)),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'If you log out, your local session and personal offline data will be removed from this device.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF9F1239), height: 1.3),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => setState(() => _showConfirmLogout = false),
-                        child: const Text('Cancel', style: TextStyle(color: SettlrColors.textMuted, fontSize: 12)),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: SettlrColors.negative,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              // App Updates Section
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAFAFA),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: SettlrColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: SettlrColors.border),
+                              ),
+                              child: const Icon(Icons.system_update_alt_rounded, size: 18, color: SettlrColors.primary),
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('App Updates', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: SettlrColors.textMain)),
+                                Text(UpdateService.currentVersion, style: const TextStyle(fontSize: 11, color: SettlrColors.textMuted)),
+                              ],
+                            ),
+                          ],
                         ),
-                        onPressed: widget.onLogout,
-                        child: const Text('Yes, Log Out', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: SettlrColors.primary,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                          onPressed: (_isCheckingUpdate || _isDownloading) ? null : _handleCheckUpdate,
+                          child: _isCheckingUpdate
+                              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Text('Check', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
+                    if (_updateStatusMessage != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        _updateStatusMessage!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: _availableUpdate != null ? SettlrColors.positive : SettlrColors.textMuted,
+                        ),
+                      ),
+                    ],
+                    if (_availableUpdate != null) ...[
+                      const SizedBox(height: 12),
+                      if (_isDownloading)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: _downloadProgress > 0 ? _downloadProgress : null,
+                            minHeight: 8,
+                            backgroundColor: const Color(0xFFE5E7EB),
+                            color: SettlrColors.positive,
+                          ),
+                        )
+                      else
+                        SizedBox(
+                          width: double.infinity,
+                          height: 42,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: SettlrColors.positive,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: _handleDownloadAndInstall,
+                            icon: const Icon(Icons.download_rounded, size: 18),
+                            label: Text('Download & Install ${_availableUpdate!.latestVersion}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          ),
+                        ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              if (_showConfirmLogout)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: SettlrColors.negativeBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: SettlrColors.negative.withOpacity(0.25)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded, size: 20, color: SettlrColors.negative),
+                          SizedBox(width: 8),
+                          Text('Confirm Account Log Out', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: SettlrColors.negative)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'If you log out, your local session and personal offline data will be removed from this device.',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF9F1239), height: 1.3),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => setState(() => _showConfirmLogout = false),
+                            child: const Text('Cancel', style: TextStyle(color: SettlrColors.textMuted, fontSize: 12)),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: SettlrColors.negative,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: widget.onLogout,
+                            child: const Text('Yes, Log Out', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            )
-          else
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.logout, color: SettlrColors.negative),
-              title: const Text('Log Out', style: TextStyle(color: SettlrColors.negative, fontWeight: FontWeight.w600, fontSize: 14)),
-              onTap: () => setState(() => _showConfirmLogout = true),
-            ),
-        ],
+                )
+              else
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.logout, color: SettlrColors.negative),
+                  title: const Text('Log Out', style: TextStyle(color: SettlrColors.negative, fontWeight: FontWeight.w600, fontSize: 14)),
+                  onTap: () => setState(() => _showConfirmLogout = true),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
