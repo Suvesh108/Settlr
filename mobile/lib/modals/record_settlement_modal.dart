@@ -217,7 +217,7 @@ class _RecordSettlementModalState extends State<RecordSettlementModal> {
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
-                      value: _toUser.isNotEmpty ? _toUser : null,
+                      value: eligible.any((m) => m.userId == _toUser) ? _toUser : null,
                       isExpanded: true,
                       hint: const Text('Select member to pay...'),
                       style: const TextStyle(fontSize: 13, color: SettlrColors.textMain, fontWeight: FontWeight.w500),

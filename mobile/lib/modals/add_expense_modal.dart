@@ -529,7 +529,7 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
                       ],
                     ),
                   );
-                }),
+                }).toList(),
               ] else if (_splitType == 'PERCENTAGE') ...[
                 ..._selectedUserIds.map((uid) {
                   final m = members.firstWhere((mem) => mem.userId == uid, orElse: () => GroupMember(userId: uid, name: 'User', email: '', role: 'MEMBER', status: 'ACTIVE'));
@@ -555,7 +555,7 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
                       ],
                     ),
                   );
-                }),
+                }).toList(),
               ] else if (_splitType == 'SHARES') ...[
                 ..._selectedUserIds.map((uid) {
                   final m = members.firstWhere((mem) => mem.userId == uid, orElse: () => GroupMember(userId: uid, name: 'User', email: '', role: 'MEMBER', status: 'ACTIVE'));
@@ -581,7 +581,7 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
                       ],
                     ),
                   );
-                }),
+                }).toList(),
               ],
               const SizedBox(height: 20),
 

@@ -260,6 +260,15 @@ class UserBalance {
       netBalance: (json['net_balance'] as num? ?? json['netBalance'] as num?)?.toInt() ?? 0,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'user_id': userId,
+      'name': name,
+      'email': email,
+      'net_balance': netBalance,
+    };
+  }
 }
 
 class PairwiseDebt {
@@ -289,6 +298,17 @@ class PairwiseDebt {
       explanation: json['explanation']?.toString() ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'user_a': userA,
+      'user_a_name': userAName,
+      'user_b': userB,
+      'user_b_name': userBName,
+      'net_debt': netDebt,
+      'explanation': explanation,
+    };
+  }
 }
 
 class RecommendedTransfer {
@@ -314,6 +334,16 @@ class RecommendedTransfer {
       toUserName: json['to_user_name']?.toString() ?? json['toUserName']?.toString() ?? '',
       amount: (json['amount'] as num?)?.toInt() ?? 0,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'from_user': fromUser,
+      'from_user_name': fromUserName,
+      'to_user': toUser,
+      'to_user_name': toUserName,
+      'amount': amount,
+    };
   }
 }
 
@@ -414,6 +444,18 @@ class ActivityItem {
       summary: json['summary']?.toString() ?? '',
       createdAt: json['created_at']?.toString() ?? json['createdAt']?.toString() ?? '',
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'group_id': groupId,
+      'actor_id': actorId,
+      'actor_name': actorName,
+      'action': action,
+      'summary': summary,
+      'created_at': createdAt,
+    };
   }
 }
 

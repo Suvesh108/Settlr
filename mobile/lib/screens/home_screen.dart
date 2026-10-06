@@ -147,11 +147,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ApiService.getActivity(groupId),
       ]);
 
-      final exp = results[0] as List<Expense>;
-      final bals = results[1] as List<UserBalance>;
-      final debts = results[2] as List<PairwiseDebt>;
-      final stls = results[3] as List<Settlement>;
-      final acts = results[4] as List<ActivityItem>;
+      final exp = (results[0] as List).cast<Expense>();
+      final bals = (results[1] as List).cast<UserBalance>();
+      final debts = (results[2] as List).cast<PairwiseDebt>();
+      final stls = (results[3] as List).cast<Settlement>();
+      final acts = (results[4] as List).cast<ActivityItem>();
       final recs = await ApiService.getRecommendedSettlements(groupId, bals);
 
       if (!mounted) return;
@@ -268,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (_) => GroupSettingsModal(
         group: _activeGroup!,
         balances: _balances,
-        onGroupChanged: _syncServerData,
+        onGroupChanged: () => _syncServerData(),
       ),
     );
   }
@@ -278,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => CreateGroupModal(onGroupCreated: _syncServerData),
+      builder: (_) => CreateGroupModal(onGroupCreated: () => _syncServerData()),
     );
   }
 
@@ -287,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => JoinGroupModal(onGroupJoined: _syncServerData),
+      builder: (_) => JoinGroupModal(onGroupJoined: () => _syncServerData()),
     );
   }
 
