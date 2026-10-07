@@ -161,8 +161,8 @@ class _TransactionTableState extends State<TransactionTable> {
               itemBuilder: (ctx, i) {
                 final exp = filtered[i];
                 final isPayer = exp.paid_by == widget.currentUserId;
-                final myPart = exp.participants.where((p) => p.user_id == widget.currentUserId).firstOrNull;
-                final myShare = myPart != null ? (myPart.share_amount / 100) : 0.0;
+                final myParts = exp.participants.where((p) => p.user_id == widget.currentUserId).toList();
+                final myShare = myParts.isNotEmpty ? (myParts.first.share_amount / 100) : 0.0;
 
                 return BouncyPress(
                   onTap: () => widget.onSelectExpense(exp),

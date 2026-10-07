@@ -264,11 +264,14 @@ class UserBalance {
   final int netBalance; // in paise: >0 creditor, <0 debtor
 
   UserBalance({
-    required this.userId,
+    String? userId,
+    String? user_id,
     required this.name,
     this.email = '',
-    required this.netBalance,
-  });
+    int? netBalance,
+    dynamic net_balance,
+  })  : userId = userId ?? user_id ?? '',
+        netBalance = netBalance ?? (net_balance is num ? net_balance.toInt() : 0);
 
   factory UserBalance.fromJson(Map<String, dynamic> json) {
     return UserBalance(

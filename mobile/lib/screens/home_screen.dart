@@ -485,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onPayTransfer: (t) {
                 _openRecordSettlementModal(
                   toUserId: t.to_user,
-                  amountPaise: (t.amount * 100).round(),
+                  amountPaise: t.amount,
                 );
               },
               onMemberTap: (m) {
@@ -518,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onPayTransfer: (t) {
             _openRecordSettlementModal(
               toUserId: t.to_user,
-              amountPaise: (t.amount * 100).round(),
+              amountPaise: t.amount,
             );
           },
           onMemberTap: (m) {

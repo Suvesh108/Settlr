@@ -55,15 +55,15 @@ jobs:
       - name: Build Release APK
         working-directory: mobile
         run: |
-          TAG_VER="${{ github.ref_name || 'v0.0.5' }}"
-          BUILD_NUM="${{ github.run_number || '5' }}"
+          TAG_VER="${{ github.ref_name }}"
           CLEAN_VER="${TAG_VER#v}"
+          BUILD_NUM="${{ github.run_number }}"
           echo "Building release APK for version: ${CLEAN_VER} with build number: ${BUILD_NUM}"
           flutter build apk --release --no-tree-shake-icons --build-name="${CLEAN_VER}" --build-number="${BUILD_NUM}"
 
       - name: Copy APK Asset
         run: |
-          VERSION="${{ github.ref_name || 'v0.0.5' }}"
+          VERSION="${{ github.ref_name }}"
           cp mobile/build/app/outputs/flutter-apk/app-release.apk "settlr-${VERSION}.apk"
           echo "Generated APK: settlr-${VERSION}.apk"
           ls -lh *.apk
@@ -71,12 +71,12 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name || 'v0.0.5' }}
-          name: Settlr Android Release ${{ github.ref_name || 'v0.0.5' }}
+          tag_name: ${{ github.ref_name }}
+          name: Settlr Android Release ${{ github.ref_name }}
           draft: false
           prerelease: false
           body: |
-            ## 📱 Settlr Mobile — Native Android App (${{ github.ref_name || 'v0.0.5' }})
+            ## 📱 Settlr Mobile — Native Android App (${{ github.ref_name }})
 
             ### What's New:
             * **Permanent Keystore Signing**: Fixed update conflict by signing with deterministic release keystore so subsequent in-app updates upgrade seamlessly.
@@ -86,9 +86,10 @@ jobs:
             * **Modular Architecture**: 1:1 parity with the webapp design system and components.
 
             ### Installation:
-            Download and install `settlr-${{ github.ref_name || 'v0.0.5' }}.apk` directly on your Android device.
+            Download and install `settlr-${{ github.ref_name }}.apk` directly on your Android device.
             *(Note: If migrating from older v0.0.4 builds, uninstall the previous version once to migrate to the permanent official signing key)*.
           files: |
             settlr-*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

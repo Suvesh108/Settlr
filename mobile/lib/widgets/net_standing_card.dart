@@ -32,7 +32,7 @@ class NetStandingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final myBalanceObj = balances.firstWhere(
       (b) => b.user_id == currentUserId,
-      orElse: () => UserBalance(user_id: currentUserId, name: 'You', net_balance: 0),
+      orElse: () => UserBalance(userId: currentUserId, name: 'You', netBalance: 0),
     );
     final myBalance = myBalanceObj.net_balance;
     final isCreditor = myBalance > 0.009;
