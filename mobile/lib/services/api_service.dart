@@ -170,31 +170,6 @@ class ApiService {
 
     await saveAuth(localUser, localUser.token!);
 
-    // Initialize default local group if none exists
-    final prefs = await SharedPreferences.getInstance();
-    final rawGroups = prefs.getString('local_groups');
-    if (rawGroups == null || rawGroups.isEmpty) {
-      final defaultGroup = Group(
-        id: 'grp_default_${DateTime.now().millisecondsSinceEpoch}',
-        name: 'Personal & Friends',
-        description: 'Automated bilateral settlement and shared expense ledger.',
-        currency: defaultCurrency,
-        inviteCode: 'SETTLR-01',
-        createdBy: localUser.id,
-        ledgerVersion: 1,
-        members: [
-          GroupMember(
-            userId: localUser.id,
-            name: localUser.name,
-            email: localUser.email,
-            role: 'OWNER',
-            status: 'ACTIVE',
-          ),
-        ],
-      );
-      await prefs.setString('local_groups', jsonEncode([defaultGroup.toJson()]));
-    }
-
     return localUser;
   }
 

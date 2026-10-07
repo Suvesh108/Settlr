@@ -28,16 +28,11 @@ class ProfileModal extends StatefulWidget {
 
 class _ProfileModalState extends State<ProfileModal> {
   final _nameController = TextEditingController();
-  final _serverUrlController = TextEditingController();
   String _selectedCurrency = 'INR';
   bool _isLoading = false;
   bool _isSavingName = false;
-  bool _isSavingServer = false;
   bool _isCheckingUpdate = false;
   String? _statusMessage;
-  bool _showAdvancedNetwork = false;
-  bool _isAutoDetecting = false;
-  bool _isConnected = false;
   bool _isError = false;
 
   final List<String> _currencies = ['INR', 'USD', 'EUR', 'GBP'];
@@ -50,41 +45,11 @@ class _ProfileModalState extends State<ProfileModal> {
 
   Future<void> _loadProfile() async {
     final name = await ApiService.getUserName();
-    final url = await ApiService.getBaseUrl();
-    final reachable = await ApiService.isServerReachable();
     if (mounted) {
       setState(() {
         _nameController.text = name;
-        _serverUrlController.text = url;
-        _isConnected = reachable;
       });
     }
-  }
-
-  Future<void> _autoDetectServer() async {
-    setState(() {
-      _isAutoDetecting = true;
-      _statusMessage = null;
-    });
-
-    final detected = await ApiService.autoDetectLocalServer();
-    if (!mounted) return;
-
-    if (detected != null) {
-      setState(() {
-        _serverUrlController.text = detected;
-        _statusMessage = 'Connected to $detected!';
-        _isError = false;
-        _isConnected = true;
-      });
-      widget.onProfileUpdated();
-    } else {
-      setState(() {
-        _statusMessage = 'Could not find local server on Wi-Fi. Running offline.';
-        _isError = true;
-      });
-    }
-    setState(() => _isAutoDetecting = false);
   }
 
   Future<void> _saveName() async {
@@ -114,36 +79,6 @@ class _ProfileModalState extends State<ProfileModal> {
       }
     } finally {
       if (mounted) setState(() => _isSavingName = false);
-    }
-  }
-
-  Future<void> _saveServerUrl() async {
-    final url = _serverUrlController.text.trim();
-    if (url.isEmpty) return;
-
-    setState(() {
-      _isSavingServer = true;
-      _statusMessage = null;
-    });
-
-    try {
-      await ApiService.setBaseUrl(url);
-      if (mounted) {
-        setState(() {
-          _statusMessage = 'Server URL set. Restart/syncing data...';
-          _isError = false;
-        });
-      }
-      widget.onProfileUpdated();
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _statusMessage = 'Failed to set URL: $e';
-          _isError = true;
-        });
-      }
-    } finally {
-      if (mounted) setState(() => _isSavingServer = false);
     }
   }
 
@@ -536,115 +471,6 @@ class _ProfileModalState extends State<ProfileModal> {
           ),
 
           const SizedBox(height: 12),
-
-          // Connection Status & Optional Advanced Network Drawer
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0x14000000)),
-            ),
-            child: Column(
-              children: [
-                InkWell(
-                  onTap: () => setState(() => _showAdvancedNetwork = !_showAdvancedNetwork),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _isConnected ? Colors.green : Colors.amber.shade700,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _isConnected ? 'Live Sync Active' : 'Local-First Offline Mode',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: SettlrColors.textMain,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Text(
-                            _showAdvancedNetwork ? 'Hide' : 'Server Options',
-                            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                          ),
-                          Icon(
-                            _showAdvancedNetwork ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                            size: 16,
-                            color: Colors.grey,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (_showAdvancedNetwork) ...[
-                  const SizedBox(height: 10),
-                  const Divider(height: 1, color: Color(0x14000000)),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _serverUrlController,
-                          decoration: InputDecoration(
-                            hintText: 'http://192.168.0.x:8080',
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0x1F000000)),
-                            ),
-                          ),
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      BouncyPress(
-                        onTap: _isSavingServer ? null : _saveServerUrl,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                          decoration: BoxDecoration(
-                            color: SettlrColors.primary,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text('Apply', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _isAutoDetecting ? null : _autoDetectServer,
-                      icon: _isAutoDetecting
-                          ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.wifi_find, size: 14),
-                      label: Text(_isAutoDetecting ? 'Searching Wi-Fi...' : 'Auto-Detect Local Server', style: const TextStyle(fontSize: 11)),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
 
           const SizedBox(height: 20),
 

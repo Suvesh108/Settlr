@@ -78,11 +78,11 @@ jobs:
           body: |
             ## 📱 Settlr Mobile — Native Android App (${{ github.ref_name }})
 
-            ### What's New in v0.0.7:
-            * **Encrypted Cloud Backend**: Securely encrypted production Render backend endpoint (`https://settlr-006k.onrender.com`) via runtime byte masking to prevent reverse engineering and strings extraction.
-            * **Webapp Smart Spend Parity**: Complete visual & behavioral parity with webapp (Group vs. Personal allocation switch, merchant auto-categorization, split calculations, and auto-tab switching).
-            * **Fixed SMS Loop & Past Bills**: Eliminated repeated popup loop and prevented detection of past bills from yesterday; enforced strict 120-second freshness window and persistent SMS hash deduplication.
-            * **Real-time Cross-Network Sync**: Friends across different cities/networks (e.g. Bihar & Bangalore) now sync group expenses and balances in real time over Render WebSockets.
+            ### What's New in v0.0.8:
+            * **Fixed Floating Add Expense Button**: Relocated FAB to native Scaffold overlay to eliminate hit-test clipping; instant and 100% responsive tap behavior.
+            * **Removed Live Sync Box from Profile**: Cleaned Profile modal to match webapp minimalism; backend endpoint remains completely hidden and encrypted.
+            * **Manual Group Creation Only**: Eliminated automatic dummy group generation on first run; cleanly shows the empty ledger state until the user creates or joins a group.
+            * **Minimalist Anti-Clutter UI**: Stripped redundant text across bottom dock, balance cards, and header avatar where self-explanatory icons already convey the action.
 
             ### Installation:
             Download and install `settlr-${{ github.ref_name }}.apk` directly on your Android device.

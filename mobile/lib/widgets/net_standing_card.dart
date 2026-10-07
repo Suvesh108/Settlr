@@ -207,17 +207,7 @@ class NetStandingCard extends StatelessWidget {
                   ],
                 ),
 
-                const SizedBox(height: 6),
-                Text(
-                  isSettled
-                      ? 'Zero pending dues. All your group expenses are fully squared.'
-                      : isCreditor
-                          ? 'Members with pending balances will transfer funds to square accounts.'
-                          : 'Use Settle Up to transfer your dues and zero out accounts.',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                ),
-
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 const Divider(height: 1, color: Color(0x14000000)),
                 const SizedBox(height: 12),
 

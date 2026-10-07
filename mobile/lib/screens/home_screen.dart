@@ -511,14 +511,43 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
 
-        // 3. Floating Bottom Navigation Dock (when in Groups mode and groups exist)
+        // 3. Bottom Navigation Dock (when in Groups mode and groups exist)
         bottomNavigationBar: (_currentTab == 0 && _groups.isNotEmpty)
             ? HapticDock(
                 activeTab: _groupSubTab,
                 onTabChanged: (tab) => setState(() => _groupSubTab = tab),
-                onAddExpense: _openAddExpenseModal,
               )
             : null,
+
+        // 4. Floating Action Button (+ Add Expense) in Scaffold overlay
+        floatingActionButton: (_currentTab == 0 && _groups.isNotEmpty)
+            ? BouncyPress(
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                  _openAddExpenseModal();
+                },
+                scaleDown: 0.90,
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: SettlrColors.primary,
+                    shape: BoxShape.circle,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x40000000),
+                        blurRadius: 14,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.add, size: 26, color: Colors.white),
+                  ),
+                ),
+              )
+            : null,
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       ),
     );
   }
