@@ -55,11 +55,15 @@ jobs:
       - name: Build Release APK
         working-directory: mobile
         run: |
-          flutter build apk --release --no-tree-shake-icons
+          TAG_VER="${{ github.ref_name || 'v0.0.5' }}"
+          BUILD_NUM="${{ github.run_number || '5' }}"
+          CLEAN_VER="${TAG_VER#v}"
+          echo "Building release APK for version: ${CLEAN_VER} with build number: ${BUILD_NUM}"
+          flutter build apk --release --no-tree-shake-icons --build-name="${CLEAN_VER}" --build-number="${BUILD_NUM}"
 
       - name: Copy APK Asset
         run: |
-          VERSION="${{ github.ref_name || 'v0.0.2' }}"
+          VERSION="${{ github.ref_name || 'v0.0.5' }}"
           cp mobile/build/app/outputs/flutter-apk/app-release.apk "settlr-${VERSION}.apk"
           echo "Generated APK: settlr-${VERSION}.apk"
           ls -lh *.apk
@@ -67,23 +71,23 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name || 'v0.0.4' }}
-          name: Settlr Android Release ${{ github.ref_name || 'v0.0.4' }}
+          tag_name: ${{ github.ref_name || 'v0.0.5' }}
+          name: Settlr Android Release ${{ github.ref_name || 'v0.0.5' }}
           draft: false
           prerelease: false
           body: |
-            ## 📱 Settlr Mobile — Native Android App (${{ github.ref_name || 'v0.0.4' }})
+            ## 📱 Settlr Mobile — Native Android App (${{ github.ref_name || 'v0.0.5' }})
 
             ### What's New:
-            * **Zero-Delay Startup**: Instant cache-first launch eliminating blocking loading spinners on every app open.
-            * **Keyboard Overflow Protection**: Full `SafeArea` and scroll protection against keyboard `RenderFlex` overflows in all modal sheets.
-            * **Live Reactive Split Previews**: Real-time per-member calculation while typing with exact paise penny conservation across Exact, Percentage, and Shares.
-            * **Full Offline Bilateral Netting**: Complete local computation of bilateral pairwise debt matrix and settlements matching the Go engine.
-            * **Wi-Fi Server Config**: In-app backend switcher in Profile to easily connect real devices to local network IPs.
-            * **Hardened Type Safety**: Null-safe and double/int defensive casting across all models.
+            * **Permanent Keystore Signing**: Fixed update conflict by signing with deterministic release keystore so subsequent in-app updates upgrade seamlessly.
+            * **Complete Webapp Motion Parity**: Replicated all Framer Motion spring physics (`ease: [0.16, 1, 0.3, 1]`), fluid sliding pill indicators, bouncy tap scaling, and modal spring sheets.
+            * **Haptic Dock & Gliding Tabs**: Fluid bottom dock with spring active pill indicator and glowing Floating Action Button.
+            * **Celebration Confetti Engine**: Native particle explosion upon completing settlements.
+            * **Modular Architecture**: 1:1 parity with the webapp design system and components.
 
             ### Installation:
-            Download and install `settlr-${{ github.ref_name || 'v0.0.4' }}.apk` directly on your Android device.
+            Download and install `settlr-${{ github.ref_name || 'v0.0.5' }}.apk` directly on your Android device.
+            *(Note: If migrating from older v0.0.4 builds, uninstall the previous version once to migrate to the permanent official signing key)*.
           files: |
             settlr-*.apk
         env:

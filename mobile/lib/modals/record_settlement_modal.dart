@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../theme/colors.dart';
+import '../widgets/confetti_overlay.dart';
 
 class RecordSettlementModal extends StatefulWidget {
   final Group group;
@@ -90,6 +92,8 @@ class _RecordSettlementModalState extends State<RecordSettlementModal> {
       );
       if (mounted) {
         Navigator.pop(context);
+        HapticFeedback.heavyImpact();
+        ConfettiOverlayController.instance.blast();
         widget.onSettlementRecorded();
       }
     } catch (e) {

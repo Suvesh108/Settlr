@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../theme/colors.dart';
@@ -81,6 +82,7 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
   }
 
   void _onSplitTypeChanged(String newType) {
+    HapticFeedback.selectionClick();
     setState(() {
       _splitType = newType;
       _error = null;

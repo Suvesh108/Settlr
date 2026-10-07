@@ -59,6 +59,8 @@ class GroupMember {
     );
   }
 
+  String get user_id => userId;
+
   Map<String, dynamic> toJson() {
     return {
       'user_id': userId,
@@ -108,6 +110,10 @@ class Group {
     );
   }
 
+  String get invite_code => inviteCode;
+  String get created_by => createdBy;
+  int get ledger_version => ledgerVersion;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -143,6 +149,9 @@ class ExpenseShare {
       shares: (json['shares'] as num?)?.toInt(),
     );
   }
+
+  String get user_id => userId;
+  int get share_amount => shareAmount;
 
   Map<String, dynamic> toJson() {
     return {
@@ -217,6 +226,15 @@ class Expense {
     );
   }
 
+  bool get is_reversed => isReversed;
+  bool get is_reversal => isReversal;
+  String get expense_date => expenseDate;
+  String get paid_by => paidBy;
+  String? get payer_name => payerName;
+  String get created_by => createdBy;
+  String get group_id => groupId;
+  List<ExpenseShare> get participants => shares;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -261,6 +279,9 @@ class UserBalance {
     );
   }
 
+  String get user_id => userId;
+  double get net_balance => netBalance / 100.0;
+
   Map<String, dynamic> toJson() {
     return {
       'user_id': userId,
@@ -299,6 +320,12 @@ class PairwiseDebt {
     );
   }
 
+  String get user_a => userA;
+  String get user_a_name => userAName;
+  String get user_b => userB;
+  String get user_b_name => userBName;
+  int get net_debt => netDebt;
+
   Map<String, dynamic> toJson() {
     return {
       'user_a': userA,
@@ -335,6 +362,11 @@ class RecommendedTransfer {
       amount: (json['amount'] as num?)?.toInt() ?? 0,
     );
   }
+
+  String get from_user => fromUser;
+  String get from_user_name => fromUserName;
+  String get to_user => toUser;
+  String get to_user_name => toUserName;
 
   Map<String, dynamic> toJson() {
     return {
@@ -399,6 +431,13 @@ class Settlement {
     );
   }
 
+  String get group_id => groupId;
+  String get from_user => fromUser;
+  String get from_user_name => fromUserName;
+  String get to_user => toUser;
+  String get to_user_name => toUserName;
+  String get created_at => createdAt;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -445,6 +484,13 @@ class ActivityItem {
       createdAt: json['created_at']?.toString() ?? json['createdAt']?.toString() ?? '',
     );
   }
+
+  String get group_id => groupId;
+  String get actor_id => actorId;
+  String get actor_name => actorName;
+  String get description => summary.isNotEmpty ? summary : action;
+  String get activity_type => action;
+  String get created_at => createdAt;
 
   Map<String, dynamic> toJson() {
     return {

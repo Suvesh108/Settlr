@@ -91,5 +91,72 @@ def patch_android_project():
             f.write(manifest)
         print("Successfully patched AndroidManifest.xml")
 
+    # 4. Copy Release Keystore and configure build.gradle
+    jks_src = os.path.join(assets_dir, 'settlr-release.jks')
+    app_dir = os.path.join(android_dir, 'app')
+    if os.path.exists(jks_src) and os.path.exists(app_dir):
+        shutil.copy2(jks_src, os.path.join(app_dir, 'settlr-release.jks'))
+        print("Copied settlr-release.jks to android/app/")
+
+    # Patch build.gradle (Groovy) or build.gradle.kts (Kotlin)
+    gradle_groovy = os.path.join(app_dir, 'build.gradle')
+    gradle_kts = os.path.join(app_dir, 'build.gradle.kts')
+
+    if os.path.exists(gradle_groovy):
+        with open(gradle_groovy, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        signing_block = """
+    signingConfigs {
+        release {
+            keyAlias 'settlr'
+            keyPassword 'settlr123'
+            storeFile file('settlr-release.jks')
+            storePassword 'settlr123'
+        }
+    }
+"""
+        if 'signingConfigs {' not in content:
+            content = re.sub(r'(android\s*\{)', r'\1' + signing_block, content, count=1)
+        elif 'keyAlias \'settlr\'' not in content:
+            content = content.replace('signingConfigs {', 'signingConfigs {\n        release {\n            keyAlias \'settlr\'\n            keyPassword \'settlr123\'\n            storeFile file(\'settlr-release.jks\')\n            storePassword \'settlr123\'\n        }\n')
+
+        # Set signingConfig for release
+        content = re.sub(
+            r'buildTypes\s*\{\s*release\s*\{[^}]*\}',
+            'buildTypes {\n        release {\n            signingConfig signingConfigs.release\n            minifyEnabled false\n            shrinkResources false\n        }',
+            content
+        )
+        with open(gradle_groovy, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print("Patched android/app/build.gradle with permanent release signingConfig")
+
+    elif os.path.exists(gradle_kts):
+        with open(gradle_kts, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        signing_block_kts = """
+    signingConfigs {
+        create("release") {
+            keyAlias = "settlr"
+            keyPassword = "settlr123"
+            storeFile = file("settlr-release.jks")
+            storePassword = "settlr123"
+        }
+    }
+"""
+        if 'signingConfigs {' not in content:
+            content = re.sub(r'(android\s*\{)', r'\1' + signing_block_kts, content, count=1)
+        # Set signingConfig for release in kts
+        content = re.sub(
+            r'buildTypes\s*\{\s*release\s*\{[^}]*\}',
+            'buildTypes {\n        release {\n            signingConfig = signingConfigs.getByName("release")\n            isMinifyEnabled = false\n            isShrinkResources = false\n        }',
+            content
+        )
+        with open(gradle_kts, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print("Patched android/app/build.gradle.kts with permanent release signingConfig")
+
 if __name__ == '__main__':
     patch_android_project()
+
