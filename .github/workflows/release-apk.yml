@@ -79,11 +79,11 @@ jobs:
             ## 📱 Settlr Mobile — Native Android App (${{ github.ref_name }})
 
             ### What's New:
-            * **Permanent Keystore Signing**: Fixed update conflict by signing with deterministic release keystore so subsequent in-app updates upgrade seamlessly.
-            * **Complete Webapp Motion Parity**: Replicated all Framer Motion spring physics (`ease: [0.16, 1, 0.3, 1]`), fluid sliding pill indicators, bouncy tap scaling, and modal spring sheets.
-            * **Haptic Dock & Gliding Tabs**: Fluid bottom dock with spring active pill indicator and glowing Floating Action Button.
-            * **Celebration Confetti Engine**: Native particle explosion upon completing settlements.
-            * **Modular Architecture**: 1:1 parity with the webapp design system and components.
+            * **Clean Profile & Live Sync**: Removed exposed raw server input from Profile sheet matching webapp; added live connection status indicator with local Wi-Fi auto-detection.
+            * **Fixed Card Button Overflow**: Stacked Total Group Spending and provided full 50/50 width action buttons in NetStandingCard to completely prevent screen overflow.
+            * **Native SMS Spend Detection**: Prompts for SMS permission on startup; automatically parses bank debit notifications (UPI, cards, food, travel) and surfaces the Smart Spend popup with confetti.
+            * **Real-time Group Sync**: Collaborative multi-user spending sync via WebSocket and background polling matching the webapp's useGroupSync engine.
+            * **Deterministic Keystore Signing**: Seamless in-app updates signed with the permanent release keystore.
 
             ### Installation:
             Download and install `settlr-${{ github.ref_name }}.apk` directly on your Android device.

@@ -18,10 +18,44 @@ class ApiService {
   static Future<String> getBaseUrl() async => _baseUrl;
   static Future<void> setBaseUrl(String url) async => setServerUrl(url);
 
+  static Future<bool> isServerReachable([String? customUrl]) async {
+    final target = customUrl ?? _baseUrl;
+    try {
+      final res = await http.get(Uri.parse(target.replaceAll('/api/v1', '/health')))
+          .timeout(const Duration(milliseconds: 1200));
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<String?> autoDetectLocalServer() async {
+    final candidates = [
+      'http://192.168.0.111:8080/api/v1',
+      'http://10.0.2.2:8080/api/v1',
+      'http://127.0.0.1:8080/api/v1',
+      'http://192.168.1.100:8080/api/v1',
+      'http://192.168.0.100:8080/api/v1',
+    ];
+
+    for (final url in candidates) {
+      if (await isServerReachable(url)) {
+        await setServerUrl(url);
+        return url;
+      }
+    }
+    return null;
+  }
+
   static Future<void> initSession() async {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString('access_token');
-    _baseUrl = prefs.getString('server_base_url') ?? 'http://10.0.2.2:8080/api/v1';
+    final savedUrl = prefs.getString('server_base_url');
+    if (savedUrl != null && savedUrl.isNotEmpty) {
+      _baseUrl = savedUrl;
+    } else {
+      _baseUrl = 'http://192.168.0.111:8080/api/v1';
+    }
     final rawUser = prefs.getString('user_data');
     if (rawUser != null) {
       try {

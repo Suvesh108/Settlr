@@ -18,10 +18,10 @@ class SmartSpendPopup extends StatefulWidget {
   });
 
   @override
-  State<SmartSpendPopup> createState() => _SmartSpendPopupState();
+  State<SmartSpendPopup> createState() => SmartSpendPopupState();
 }
 
-class _SmartSpendPopupState extends State<SmartSpendPopup> {
+class SmartSpendPopupState extends State<SmartSpendPopup> {
   bool _isVisible = false;
   String _detectedMerchant = '';
   double _detectedAmount = 0.0;

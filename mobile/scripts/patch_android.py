@@ -61,6 +61,8 @@ def patch_android_project():
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <uses-permission android:name="android.permission.RECEIVE_SMS"/>
+    <uses-permission android:name="android.permission.READ_SMS"/>
 """
         if '<uses-permission android:name="android.permission.INTERNET"' not in manifest:
             manifest = re.sub(r'(<manifest[^>]*>)', r'\1' + permissions, manifest, count=1)

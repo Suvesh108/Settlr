@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
+import '../services/sms_service.dart';
+import '../services/group_sync_service.dart';
 import '../theme/colors.dart';
 import '../widgets/motion_wrapper.dart';
 import '../widgets/confetti_overlay.dart';
@@ -49,6 +52,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isRefreshing = false;
 
   final GlobalKey<_HomeScreenState> _scaffoldKey = GlobalKey<_HomeScreenState>();
+  final GlobalKey<SmartSpendPopupState> _smartSpendKey = GlobalKey<SmartSpendPopupState>();
+  StreamSubscription? _smsSub;
+  StreamSubscription? _syncSub;
 
   @override
   void initState() {
@@ -100,8 +106,34 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    // 2. Silent Background Server Sync
+    // 2. Initialize native SMS listener & startup permission prompt
+    SmsService.init();
+    _smsSub = SmsService.onSpendDetected.listen((spend) {
+      if (mounted) {
+        _smartSpendKey.currentState?.showWithData(
+          merchant: spend.merchant,
+          amount: spend.amount,
+        );
+      }
+    });
+
+    // 3. Connect real-time group sync listener
+    _syncSub = GroupSyncService.instance.onSyncEvent.listen((_) {
+      if (_activeGroup != null && mounted) {
+        _fetchActiveGroupDetails(_activeGroup!.id);
+      }
+    });
+
+    // 4. Silent Background Server Sync
     _syncServerData(isUserInitiated: false);
+  }
+
+  @override
+  void dispose() {
+    _smsSub?.cancel();
+    _syncSub?.cancel();
+    GroupSyncService.instance.disconnect();
+    super.dispose();
   }
 
   Future<void> _syncServerData({bool isUserInitiated = false}) async {
@@ -146,6 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchActiveGroupDetails(String groupId) async {
+    GroupSyncService.instance.connect(groupId);
     try {
       final results = await Future.wait([
         ApiService.getExpenses(groupId),
@@ -358,88 +391,105 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: SettlrColors.background,
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              // 1. Island Header (Brand, Animated Mode Segment, Group Switcher, Profile Pill)
-              IslandHeader(
-                currentMode: _currentTab,
-                onModeChanged: (mode) {
-                  setState(() => _currentTab = mode);
-                },
-                groups: _groups,
-                activeGroup: _activeGroup,
-                onSelectGroup: _handleSwitchGroup,
-                onCreateGroup: _openCreateGroupModal,
-                onJoinGroup: _openJoinGroupModal,
-                onOpenProfile: _openProfileModal,
-                userName: userName,
-                currentUserId: currentUserId,
-              ),
+        body: Stack(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  // 1. Island Header (Brand, Animated Mode Segment, Group Switcher, Profile Pill)
+                  IslandHeader(
+                    currentMode: _currentTab,
+                    onModeChanged: (mode) {
+                      setState(() => _currentTab = mode);
+                    },
+                    groups: _groups,
+                    activeGroup: _activeGroup,
+                    onSelectGroup: _handleSwitchGroup,
+                    onCreateGroup: _openCreateGroupModal,
+                    onJoinGroup: _openJoinGroupModal,
+                    onOpenProfile: _openProfileModal,
+                    userName: userName,
+                    currentUserId: currentUserId,
+                  ),
 
-              // 2. Main Content Area with fluid AnimatedSwitcher
-              Expanded(
-                child: RefreshIndicator(
-                  color: SettlrColors.primary,
-                  onRefresh: () => _syncServerData(isUserInitiated: true),
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 240),
-                      switchInCurve: SettlrCurves.spring,
-                      switchOutCurve: Curves.easeInCubic,
-                      transitionBuilder: (child, animation) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, 0.03),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: _currentTab == 1
-                          ? KeyedSubtree(
-                              key: const ValueKey('personal-stream-tab'),
-                              child: PersonalStream(
-                                expenses: _personalExpenses,
-                                currency: currentCurrency,
-                                onAddExpense: _openAddPersonalExpenseModal,
-                                onDeleteExpense: _handleDeletePersonalExpense,
+                  // 2. Main Content Area with fluid AnimatedSwitcher
+                  Expanded(
+                    child: RefreshIndicator(
+                      color: SettlrColors.primary,
+                      onRefresh: () => _syncServerData(isUserInitiated: true),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 240),
+                          switchInCurve: SettlrCurves.spring,
+                          switchOutCurve: Curves.easeInCubic,
+                          transitionBuilder: (child, animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, 0.03),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
                               ),
-                            )
-                          : _groups.isEmpty
+                            );
+                          },
+                          child: _currentTab == 1
                               ? KeyedSubtree(
-                                  key: const ValueKey('empty-groups-tab'),
-                                  child: _buildEmptyGroupsState(),
+                                  key: const ValueKey('personal-stream-tab'),
+                                  child: PersonalStream(
+                                    expenses: _personalExpenses,
+                                    currency: currentCurrency,
+                                    onAddExpense: _openAddPersonalExpenseModal,
+                                    onDeleteExpense: _handleDeletePersonalExpense,
+                                  ),
                                 )
-                              : _activeGroup == null
-                                  ? const KeyedSubtree(
-                                      key: ValueKey('loading-tab'),
-                                      child: Center(
-                                        child: Padding(
-                                          padding: EdgeInsets.all(40),
-                                          child: CircularProgressIndicator(),
-                                        ),
-                                      ),
+                              : _groups.isEmpty
+                                  ? KeyedSubtree(
+                                      key: const ValueKey('empty-groups-tab'),
+                                      child: _buildEmptyGroupsState(),
                                     )
-                                  : KeyedSubtree(
-                                      key: ValueKey('group-subtab-$_groupSubTab-${_activeGroup!.id}'),
-                                      child: _buildGroupSubTabView(
-                                        totalSpending: totalSpending,
-                                        currentUserId: currentUserId,
-                                      ),
-                                    ),
+                                  : _activeGroup == null
+                                      ? const KeyedSubtree(
+                                          key: ValueKey('loading-tab'),
+                                          child: Center(
+                                            child: Padding(
+                                              padding: EdgeInsets.all(40),
+                                              child: CircularProgressIndicator(),
+                                            ),
+                                          ),
+                                        )
+                                      : KeyedSubtree(
+                                          key: ValueKey('group-subtab-$_groupSubTab-${_activeGroup!.id}'),
+                                          child: _buildGroupSubTabView(
+                                            totalSpending: totalSpending,
+                                            currentUserId: currentUserId,
+                                          ),
+                                        ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+
+            // 3. Floating Smart Spend Detected Popup
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: (_currentTab == 0 && _groups.isNotEmpty) ? 72 : 16,
+              child: SmartSpendPopup(
+                key: _smartSpendKey,
+                groups: _groups,
+                activeGroup: _activeGroup,
+                onTransactionSaved: () => _syncServerData(),
+              ),
+            ),
+          ],
         ),
 
         // 3. Floating Bottom Navigation Dock (when in Groups mode and groups exist)

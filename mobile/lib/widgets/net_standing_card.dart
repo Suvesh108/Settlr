@@ -222,81 +222,85 @@ class NetStandingCard extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 // Group Total Spending & Quick Action Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Total Group Spending',
-                          style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500),
-                        ),
-                        Text(
-                          _formatMoney(totalSpending, group.currency),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: SettlrColors.textMain,
-                          ),
-                        ),
-                        Text(
-                          '${group.members?.length ?? 0} active members',
-                          style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
-                        ),
-                      ],
+                    const Text(
+                      'Total Group Spending',
+                      style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500),
                     ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatMoney(totalSpending, group.currency),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: SettlrColors.textMain,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      '${group.members?.length ?? 0} active members',
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                    ),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
-                        BouncyPress(
-                          onTap: onAddExpense,
-                          scaleDown: 0.94,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: SettlrColors.primary,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.add, size: 14, color: Colors.white),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Add Expense',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: BouncyPress(
+                            onTap: onAddExpense,
+                            scaleDown: 0.94,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: SettlrColors.primary,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add, size: 15, color: Colors.white),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Add Expense',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        BouncyPress(
-                          onTap: onRecordSettlement,
-                          scaleDown: 0.94,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0x1F000000)),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.payment, size: 14, color: SettlrColors.textMain),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Settle Up',
-                                  style: TextStyle(
-                                    color: SettlrColors.textMain,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: BouncyPress(
+                            onTap: onRecordSettlement,
+                            scaleDown: 0.94,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0x26000000)),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.payment, size: 15, color: SettlrColors.textMain),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Settle Up',
+                                    style: TextStyle(
+                                      color: SettlrColors.textMain,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
