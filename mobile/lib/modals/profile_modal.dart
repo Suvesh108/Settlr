@@ -38,6 +38,7 @@ class _ProfileModalState extends State<ProfileModal> {
   bool _showAdvancedNetwork = false;
   bool _isAutoDetecting = false;
   bool _isConnected = false;
+  bool _isError = false;
 
   final List<String> _currencies = ['INR', 'USD', 'EUR', 'GBP'];
 
