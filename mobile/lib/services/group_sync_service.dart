@@ -55,7 +55,7 @@ class GroupSyncService {
       final wsUri = Uri(
         scheme: wsScheme,
         host: uri.host,
-        port: uri.port,
+        port: uri.hasPort ? uri.port : null,
         path: '/ws/groups/$_currentGroupId',
         queryParameters: token != null ? {'token': token} : null,
       );

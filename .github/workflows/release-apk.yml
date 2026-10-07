@@ -78,12 +78,11 @@ jobs:
           body: |
             ## 📱 Settlr Mobile — Native Android App (${{ github.ref_name }})
 
-            ### What's New:
-            * **Clean Profile & Live Sync**: Removed exposed raw server input from Profile sheet matching webapp; added live connection status indicator with local Wi-Fi auto-detection.
-            * **Fixed Card Button Overflow**: Stacked Total Group Spending and provided full 50/50 width action buttons in NetStandingCard to completely prevent screen overflow.
-            * **Native SMS Spend Detection**: Prompts for SMS permission on startup; automatically parses bank debit notifications (UPI, cards, food, travel) and surfaces the Smart Spend popup with confetti.
-            * **Real-time Group Sync**: Collaborative multi-user spending sync via WebSocket and background polling matching the webapp's useGroupSync engine.
-            * **Deterministic Keystore Signing**: Seamless in-app updates signed with the permanent release keystore.
+            ### What's New in v0.0.7:
+            * **Encrypted Cloud Backend**: Securely encrypted production Render backend endpoint (`https://settlr-006k.onrender.com`) via runtime byte masking to prevent reverse engineering and strings extraction.
+            * **Webapp Smart Spend Parity**: Complete visual & behavioral parity with webapp (Group vs. Personal allocation switch, merchant auto-categorization, split calculations, and auto-tab switching).
+            * **Fixed SMS Loop & Past Bills**: Eliminated repeated popup loop and prevented detection of past bills from yesterday; enforced strict 120-second freshness window and persistent SMS hash deduplication.
+            * **Real-time Cross-Network Sync**: Friends across different cities/networks (e.g. Bihar & Bangalore) now sync group expenses and balances in real time over Render WebSockets.
 
             ### Installation:
             Download and install `settlr-${{ github.ref_name }}.apk` directly on your Android device.

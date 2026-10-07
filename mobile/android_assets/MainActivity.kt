@@ -102,11 +102,13 @@ class MainActivity: FlutterActivity() {
                             result.success(emptyList<Map<String, Any>>())
                             return@setMethodCallHandler
                         }
+                        // Strictly query SMS received in the last 120 seconds to prevent detecting old past bills
+                        val twoMinutesAgo = System.currentTimeMillis() - (120 * 1000)
                         val cursor = contentResolver.query(
                             Uri.parse("content://sms/inbox"),
                             arrayOf("body", "address", "date"),
-                            null,
-                            null,
+                            "date >= ?",
+                            arrayOf(twoMinutesAgo.toString()),
                             "date DESC LIMIT 5"
                         )
                         val messages = mutableListOf<Map<String, Any>>()
@@ -115,7 +117,7 @@ class MainActivity: FlutterActivity() {
                                 val body = it.getString(it.getColumnIndexOrThrow("body")) ?: ""
                                 val address = it.getString(it.getColumnIndexOrThrow("address")) ?: ""
                                 val date = it.getLong(it.getColumnIndexOrThrow("date"))
-                                messages.add(mapOf("body" to body, "sender" to address, "date" to date))
+                                messages.add(mapOf("body" to body, "sender" to address, "date" to date, "timestamp" to date))
                             }
                         }
                         result.success(messages)
@@ -148,9 +150,11 @@ class MainActivity: FlutterActivity() {
                         }
                     }
                     if (fullBody.isNotEmpty()) {
+                        val now = System.currentTimeMillis()
                         smsChannel?.invokeMethod("onSmsReceived", mapOf(
                             "body" to fullBody.toString(),
-                            "sender" to sender
+                            "sender" to sender,
+                            "timestamp" to now
                         ))
                     }
                 }

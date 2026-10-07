@@ -113,6 +113,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _smartSpendKey.currentState?.showWithData(
           merchant: spend.merchant,
           amount: spend.amount,
+          accountEnding: spend.accountEnding,
+          deduplicationHash: spend.deduplicationHash,
         );
       }
     });
@@ -486,7 +488,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 key: _smartSpendKey,
                 groups: _groups,
                 activeGroup: _activeGroup,
-                onTransactionSaved: () => _syncServerData(),
+                onTransactionSaved: (isPersonal) async {
+                  if (isPersonal) {
+                    final updatedPersonal = await ApiService.getPersonalExpenses();
+                    if (mounted) {
+                      setState(() {
+                        _personalExpenses = updatedPersonal;
+                        _currentTab = 1; // Auto-switch to personal tab so user immediately sees their entry
+                      });
+                    }
+                  } else {
+                    await _syncServerData();
+                    if (mounted) {
+                      setState(() {
+                        _currentTab = 0; // Stay on group ledger
+                      });
+                    }
+                  }
+                },
               ),
             ),
           ],
