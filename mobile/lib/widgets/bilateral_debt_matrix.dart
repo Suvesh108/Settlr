@@ -204,7 +204,7 @@ class BilateralDebtMatrix extends StatelessWidget {
                                   t.from_user_name.isNotEmpty
                                       ? t.from_user_name.substring(0, 1).toUpperCase()
                                       : 'F',
-                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black89),
+                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
                                 ),
                               ),
                               const SizedBox(width: 5),
@@ -226,7 +226,7 @@ class BilateralDebtMatrix extends StatelessWidget {
                                   t.to_user_name.isNotEmpty
                                       ? t.to_user_name.substring(0, 1).toUpperCase()
                                       : 'T',
-                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black89),
+                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
                                 ),
                               ),
                               const SizedBox(width: 5),

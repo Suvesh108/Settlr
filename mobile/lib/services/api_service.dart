@@ -13,6 +13,11 @@ class ApiService {
   static User? get currentUser => _currentUser;
   static String? get token => _token;
 
+  static Future<String> getUserId() async => _currentUser?.id ?? 'me';
+  static Future<String> getUserName() async => _currentUser?.name ?? 'User';
+  static Future<String> getBaseUrl() async => _baseUrl;
+  static Future<void> setBaseUrl(String url) async => setServerUrl(url);
+
   static Future<void> initSession() async {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString('access_token');

@@ -70,7 +70,7 @@ class _SmartSpendPopupState extends State<SmartSpendPopup> {
           amount: (_detectedAmount * 100).round(),
           description: _detectedMerchant.isNotEmpty ? _detectedMerchant : 'Quick Spend',
           paidBy: myId,
-          splitMode: 'EQUAL',
+          splitType: 'EQUAL',
           category: _selectedCategory,
           participants: participants,
         );
