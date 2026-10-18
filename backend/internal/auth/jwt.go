@@ -1,12 +1,25 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type ContextKey string
+
+const (
+	UserIDKey ContextKey = "user_id"
+	EmailKey  ContextKey = "email"
+)
+
+func GetUserID(ctx context.Context) (string, bool) {
+	val, ok := ctx.Value(UserIDKey).(string)
+	return val, ok
+}
 
 var (
 	JWTSecret       = []byte("antigravity-secure-financial-ledger-jwt-secret-key-change-in-prod")

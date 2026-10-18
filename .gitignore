@@ -13,3 +13,4 @@ backend/server.exe
 .env
 .DS_Store
 Thumbs.db
+.local/

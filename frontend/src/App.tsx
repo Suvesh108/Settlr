@@ -23,6 +23,10 @@ import { CreateGroupModal } from './components/modals/CreateGroupModal';
 import { JoinGroupModal } from './components/modals/JoinGroupModal';
 import { ExpenseDetailsModal } from './components/modals/ExpenseDetailsModal';
 import { GroupSettingsModal } from './components/modals/GroupSettingsModal';
+import { ReceiptItemizerModal } from './components/modals/ReceiptItemizerModal';
+import { SpendingAnalyticsModal } from './components/modals/SpendingAnalyticsModal';
+import { ExportLedgerModal } from './components/modals/ExportLedgerModal';
+import { UPIPaymentModal } from './components/modals/UPIPaymentModal';
 import { SmartSpendPopup } from './components/SmartSpendPopup';
 import { Plus, UserPlus, ArrowRight } from 'lucide-react';
 import logoImg from './assets/logo.png';
@@ -349,6 +353,32 @@ const Dashboard: React.FC = () => {
               <GroupSettingsModal
                 group={activeGroup}
                 balances={balances}
+              />
+
+              <ReceiptItemizerModal
+                groupId={activeGroup.id}
+                currency={activeGroup.currency}
+                members={members}
+              />
+
+              <SpendingAnalyticsModal
+                groupId={activeGroup.id}
+                currency={activeGroup.currency}
+                expenses={expenses}
+                members={members}
+                balances={balances}
+              />
+
+              <ExportLedgerModal
+                group={activeGroup}
+                expenses={expenses}
+                settlements={settlements}
+                members={members}
+              />
+
+              <UPIPaymentModal
+                groupId={activeGroup.id}
+                currency={activeGroup.currency}
               />
             </motion.div>
           ) : (

@@ -3,6 +3,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import { Group, UserBalance } from '../../types';
 import { apiRequest } from '../../services/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { X, Copy, Check, LogOut, Shield, Users, Info, AlertCircle, Trash2 } from 'lucide-react';
 import { AnimatedModal } from '../ui/AnimatedModal';
 import { motion } from 'motion/react';
@@ -15,6 +16,7 @@ interface GroupSettingsModalProps {
 export const GroupSettingsModal: React.FC<GroupSettingsModalProps> = ({ group, balances }) => {
   const currentUserId = useAuthStore((state) => state.user?.id);
   const { isGroupSettingsOpen, setIsGroupSettingsOpen, setActiveGroupId } = useUIStore();
+  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -55,7 +57,7 @@ export const GroupSettingsModal: React.FC<GroupSettingsModalProps> = ({ group, b
       });
       setIsGroupSettingsOpen(false);
       setActiveGroupId(null);
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
     } catch (e: unknown) {
       setErrorMsg(e instanceof Error ? e.message : 'Failed to delete group');
     } finally {
@@ -86,7 +88,7 @@ export const GroupSettingsModal: React.FC<GroupSettingsModalProps> = ({ group, b
       });
       setIsGroupSettingsOpen(false);
       setActiveGroupId(null);
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
     } catch (e: unknown) {
       setErrorMsg(e instanceof Error ? e.message : 'Failed to leave group');
     } finally {

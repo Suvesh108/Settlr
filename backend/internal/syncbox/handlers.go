@@ -1,12 +1,15 @@
 package syncbox
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"expense-tracker/backend/internal/memstore"
 	"expense-tracker/backend/internal/middleware"
 	"expense-tracker/backend/internal/websocket"
@@ -25,18 +28,42 @@ type PushEnvelopeRequest struct {
 }
 
 type Handler struct {
-	hub *websocket.Hub
+	pool *pgxpool.Pool
+	hub  *websocket.Hub
 }
 
-func NewHandler(hub *websocket.Hub) *Handler {
-	return &Handler{hub: hub}
+func NewHandler(pool *pgxpool.Pool, hub *websocket.Hub) *Handler {
+	return &Handler{pool: pool, hub: hub}
+}
+
+func (h *Handler) verifyMembership(ctx context.Context, groupID, userID string) error {
+	if h.pool != nil {
+		var status string
+		err := h.pool.QueryRow(ctx,
+			`SELECT status FROM group_members WHERE group_id = $1 AND user_id = $2`,
+			groupID, userID,
+		).Scan(&status)
+		if err != nil || status != "ACTIVE" {
+			return errors.New("not active member")
+		}
+		return nil
+	}
+
+	store := memstore.Get()
+	store.RLock()
+	defer store.RUnlock()
+	members := store.Members[groupID]
+	if members == nil || members[userID] == nil || members[userID].Status != "ACTIVE" {
+		return errors.New("not active member")
+	}
+	return nil
 }
 
 // PushEnvelopes receives opaque encrypted envelopes from a device (e.g. Mumbai, Srinagar, or Bangalore)
 // and stores them into the group mailbox without knowing or decrypting their contents.
 func (h *Handler) PushEnvelopes(w http.ResponseWriter, r *http.Request) {
 	groupID := chi.URLParam(r, "groupId")
-	userID, ok := r.Context().Value(middleware.UserIDKey).(string)
+	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == "" {
 		response.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "User identity required")
 		return
@@ -53,23 +80,14 @@ func (h *Handler) PushEnvelopes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := h.verifyMembership(r.Context(), groupID, userID); err != nil {
+		response.Error(w, http.StatusForbidden, "FORBIDDEN", "Must be an active member of this group")
+		return
+	}
+
 	store := memstore.Get()
 	store.Lock()
 	defer store.Unlock()
-
-	// Verify group existence
-	grp, exists := store.Groups[groupID]
-	if !exists {
-		response.Error(w, http.StatusNotFound, "NOT_FOUND", "Group not found")
-		return
-	}
-
-	// Verify user is a member
-	members := store.Members[groupID]
-	if members == nil || members[userID] == nil {
-		response.Error(w, http.StatusForbidden, "FORBIDDEN", "Must be a member of this group")
-		return
-	}
 
 	pushed := make([]*memstore.EncryptedEnvelope, 0, len(req.Envelopes))
 	currSeq := store.GetNextEnvelopeSeq(groupID)
@@ -91,8 +109,6 @@ func (h *Handler) PushEnvelopes(w http.ResponseWriter, r *http.Request) {
 		pushed = append(pushed, envelope)
 	}
 
-	_ = grp // Keep reference
-
 	// Broadcast push event via WebSocket to notify online peers in room to pull new envelopes
 	if h.hub != nil {
 		h.hub.Broadcast(groupID, "sync.envelopes_pushed", map[string]interface{}{
@@ -111,7 +127,7 @@ func (h *Handler) PushEnvelopes(w http.ResponseWriter, r *http.Request) {
 // encrypted envelopes that occurred after their last known sequence number (`since_seq`).
 func (h *Handler) PullEnvelopes(w http.ResponseWriter, r *http.Request) {
 	groupID := chi.URLParam(r, "groupId")
-	userID, ok := r.Context().Value(middleware.UserIDKey).(string)
+	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == "" {
 		response.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "User identity required")
 		return
@@ -120,23 +136,14 @@ func (h *Handler) PullEnvelopes(w http.ResponseWriter, r *http.Request) {
 	sinceSeqStr := r.URL.Query().Get("since_seq")
 	sinceSeq, _ := strconv.ParseInt(sinceSeqStr, 10, 64)
 
+	if err := h.verifyMembership(r.Context(), groupID, userID); err != nil {
+		response.Error(w, http.StatusForbidden, "FORBIDDEN", "Must be an active member of this group")
+		return
+	}
+
 	store := memstore.Get()
 	store.RLock()
 	defer store.RUnlock()
-
-	// Verify group existence
-	_, exists := store.Groups[groupID]
-	if !exists {
-		response.Error(w, http.StatusNotFound, "NOT_FOUND", "Group not found")
-		return
-	}
-
-	// Verify user is a member
-	members := store.Members[groupID]
-	if members == nil || members[userID] == nil {
-		response.Error(w, http.StatusForbidden, "FORBIDDEN", "Must be a member of this group")
-		return
-	}
 
 	envelopes := store.GetEnvelopesSince(groupID, sinceSeq)
 

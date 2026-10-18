@@ -3,6 +3,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import { GroupMember, SplitType } from '../../types';
 import { apiRequest } from '../../services/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { pushEncryptedEvent } from '../../services/syncMailbox';
 import { X, Check, AlertCircle, ChevronDown } from 'lucide-react';
 import { CustomSelect } from '../ui/CustomSelect';
@@ -18,6 +19,7 @@ interface AddExpenseModalProps {
 export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ groupId, currency, members }) => {
   const currentUserId = useAuthStore((state) => state.user?.id);
   const { isAddExpenseOpen, setIsAddExpenseOpen } = useUIStore();
+  const queryClient = useQueryClient();
 
   const [description, setDescription] = useState('');
   const [amountInput, setAmountInput] = useState('');
@@ -182,6 +184,15 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ groupId, curre
         data: expenseBody,
         timestamp: Date.now(),
       }).catch(() => {});
+
+      // Invalidate queries for instant UI update
+      queryClient.invalidateQueries({ queryKey: ['group', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['expenses', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['balances', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['pairwise', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['recommended', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['activity', groupId] });
 
       setDescription('');
       setAmountInput('');

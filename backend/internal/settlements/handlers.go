@@ -389,7 +389,7 @@ func (h *Handler) CancelSettlement(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListSettlements(w http.ResponseWriter, r *http.Request) {
 	groupID := chi.URLParam(r, "groupId")
 
-	var list []SettlementResponse
+	list := make([]SettlementResponse, 0)
 
 	if h.pool == nil {
 		store := memstore.Get()

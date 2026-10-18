@@ -185,7 +185,7 @@ func (h *Handler) CreateGroup(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListUserGroups(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.GetUserID(r.Context())
 
-	var groups []GroupResponse
+	groups := make([]GroupResponse, 0)
 
 	if h.pool == nil {
 		store := memstore.Get()

@@ -58,7 +58,7 @@ func main() {
 	balancesHandler := balances.NewHandler(pool)
 	settlementsHandler := settlements.NewHandler(pool, hub)
 	activityHandler := activity.NewHandler(pool)
-	syncboxHandler := syncbox.NewHandler(hub)
+	syncboxHandler := syncbox.NewHandler(pool, hub)
 
 	// 4. Setup Router
 	r := chi.NewRouter()

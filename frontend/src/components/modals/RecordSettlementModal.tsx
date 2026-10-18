@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import { GroupMember, PairwiseDebt } from '../../types';
 import { apiRequest } from '../../services/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { formatMoney } from '../../utils/formatters';
 import { X, AlertCircle } from 'lucide-react';
 import { CustomSelect } from '../ui/CustomSelect';
@@ -24,6 +25,7 @@ export const RecordSettlementModal: React.FC<RecordSettlementModalProps> = ({
 }) => {
   const currentUserId = useAuthStore((state) => state.user?.id);
   const { isRecordSettlementOpen, setIsRecordSettlementOpen, settlementPreFill } = useUIStore();
+  const queryClient = useQueryClient();
 
   const [toUser, setToUser] = useState(settlementPreFill?.toUserId || '');
   const [amountInput, setAmountInput] = useState(
@@ -77,6 +79,13 @@ export const RecordSettlementModal: React.FC<RecordSettlementModalProps> = ({
           amount: amountPaise,
         }),
       });
+
+      queryClient.invalidateQueries({ queryKey: ['group', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['balances', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['pairwise', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['recommended', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['activity', groupId] });
 
       setAmountInput('');
       setToUser('');

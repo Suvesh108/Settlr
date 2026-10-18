@@ -221,7 +221,7 @@ func (h *Handler) CreateExpense(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListExpenses(w http.ResponseWriter, r *http.Request) {
 	groupID := chi.URLParam(r, "groupId")
 
-	var expensesList []ExpenseDetailResponse
+	expensesList := make([]ExpenseDetailResponse, 0)
 
 	if h.pool == nil {
 		store := memstore.Get()

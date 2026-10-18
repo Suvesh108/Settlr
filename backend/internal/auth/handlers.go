@@ -68,8 +68,9 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	if h.pool == nil {
 		store := memstore.Get()
-		store.UsersByEmail[req.Email] = nil // lock check
+		store.Lock()
 		if existing, exists := store.UsersByEmail[req.Email]; exists && existing != nil {
+			store.Unlock()
 			response.Error(w, http.StatusConflict, "EMAIL_EXISTS", "A user with this email already exists")
 			return
 		}
@@ -84,6 +85,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 		store.Users[userID] = u
 		store.UsersByEmail[req.Email] = u
+		store.Unlock()
 	} else {
 		err = h.pool.QueryRow(r.Context(),
 			`INSERT INTO users (name, email, password_hash, default_currency)
@@ -141,7 +143,9 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	if h.pool == nil {
 		store := memstore.Get()
+		store.RLock()
 		u, exists := store.UsersByEmail[req.Email]
+		store.RUnlock()
 		if !exists || u == nil || !CheckPassword(req.Password, u.PasswordHash) {
 			response.Error(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", "Incorrect email or password")
 			return
@@ -187,12 +191,18 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(string)
+	userID, ok := GetUserID(r.Context())
+	if !ok || userID == "" {
+		response.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "Authentication required")
+		return
+	}
 
 	var user UserResponse
 	if h.pool == nil {
 		store := memstore.Get()
+		store.RLock()
 		u, exists := store.Users[userID]
+		store.RUnlock()
 		if !exists {
 			response.Error(w, http.StatusNotFound, "NOT_FOUND", "User not found")
 			return

@@ -33,6 +33,15 @@ interface UIState {
     rawText: string;
     accountEnding?: string;
   } | null) => void;
+  isReceiptItemizerOpen: boolean;
+  setIsReceiptItemizerOpen: (open: boolean) => void;
+  isSpendingAnalyticsOpen: boolean;
+  setIsSpendingAnalyticsOpen: (open: boolean) => void;
+  isExportLedgerOpen: boolean;
+  setIsExportLedgerOpen: (open: boolean) => void;
+  isUPIPaymentOpen: boolean;
+  setIsUPIPaymentOpen: (open: boolean, details?: { toUserId: string; toUserName: string; amount: number; upiId?: string } | null) => void;
+  upiPaymentDetails: { toUserId: string; toUserName: string; amount: number; upiId?: string } | null;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -68,4 +77,14 @@ export const useUIStore = create<UIState>((set) => ({
   setSelectedExpenseForDetails: (expense) => set({ selectedExpenseForDetails: expense }),
   smartTransactionPrompt: null,
   setSmartTransactionPrompt: (prompt) => set({ smartTransactionPrompt: prompt }),
+  isReceiptItemizerOpen: false,
+  setIsReceiptItemizerOpen: (open) => set({ isReceiptItemizerOpen: open }),
+  isSpendingAnalyticsOpen: false,
+  setIsSpendingAnalyticsOpen: (open) => set({ isSpendingAnalyticsOpen: open }),
+  isExportLedgerOpen: false,
+  setIsExportLedgerOpen: (open) => set({ isExportLedgerOpen: open }),
+  isUPIPaymentOpen: false,
+  upiPaymentDetails: null,
+  setIsUPIPaymentOpen: (open, details = null) =>
+    set({ isUPIPaymentOpen: open, upiPaymentDetails: details }),
 }));

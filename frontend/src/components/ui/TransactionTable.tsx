@@ -5,6 +5,7 @@ import { formatMoney, formatDate } from '../../utils/formatters';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import { apiRequest } from '../../services/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   Receipt, 
   RotateCcw, 
@@ -25,6 +26,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
 }) => {
   const currentUserId = useAuthStore((state) => state.user?.id);
   const { setSelectedExpenseForDetails } = useUIStore();
+  const queryClient = useQueryClient();
   const [filterCategory, setFilterCategory] = useState<string>('ALL');
   const [reversingId, setReversingId] = useState<string | null>(null);
 
@@ -43,7 +45,13 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
         method: 'POST',
         useIdempotency: true,
       });
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ['group', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['expenses', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['balances', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['pairwise', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['recommended', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['activity', groupId] });
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Reversal failed');
     } finally {

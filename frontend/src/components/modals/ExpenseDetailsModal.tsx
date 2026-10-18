@@ -4,6 +4,7 @@ import { useUIStore } from '../../store/uiStore';
 import { GroupMember } from '../../types';
 import { formatMoney, formatDate } from '../../utils/formatters';
 import { apiRequest } from '../../services/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { X, RotateCcw, AlertTriangle, ShieldCheck, Tag, Calendar, User } from 'lucide-react';
 import { AnimatedModal } from '../ui/AnimatedModal';
 import { motion } from 'motion/react';
@@ -21,6 +22,7 @@ export const ExpenseDetailsModal: React.FC<ExpenseDetailsModalProps> = ({
 }) => {
   const currentUserId = useAuthStore((state) => state.user?.id);
   const { selectedExpenseForDetails, setSelectedExpenseForDetails } = useUIStore();
+  const queryClient = useQueryClient();
   const [reversing, setReversing] = useState(false);
 
   if (!selectedExpenseForDetails) return null;
@@ -42,6 +44,13 @@ export const ExpenseDetailsModal: React.FC<ExpenseDetailsModalProps> = ({
         method: 'POST',
         useIdempotency: true,
       });
+      queryClient.invalidateQueries({ queryKey: ['group', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['expenses', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['balances', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['pairwise', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['recommended', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['activity', groupId] });
       setSelectedExpenseForDetails(null);
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : 'Reversal failed');

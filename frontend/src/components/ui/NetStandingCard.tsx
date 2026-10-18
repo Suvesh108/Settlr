@@ -10,7 +10,10 @@ import {
   ArrowDownLeft, 
   Settings, 
   CreditCard,
-  Plus
+  Plus,
+  Receipt,
+  BarChart3,
+  Download
 } from 'lucide-react';
 
 interface NetStandingCardProps {
@@ -25,7 +28,14 @@ export const NetStandingCard: React.FC<NetStandingCardProps> = ({
   totalSpending,
 }) => {
   const user = useAuthStore((state) => state.user);
-  const { setIsAddExpenseOpen, setIsRecordSettlementOpen, setIsGroupSettingsOpen } = useUIStore();
+  const { 
+    setIsAddExpenseOpen, 
+    setIsRecordSettlementOpen, 
+    setIsGroupSettingsOpen,
+    setIsReceiptItemizerOpen,
+    setIsSpendingAnalyticsOpen,
+    setIsExportLedgerOpen
+  } = useUIStore();
 
   const myBalance = balances.find((b) => b.user_id === user?.id)?.net_balance || 0;
   const isCreditor = myBalance > 0.009;
@@ -55,7 +65,29 @@ export const NetStandingCard: React.FC<NetStandingCardProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            type="button"
+            onClick={() => setIsSpendingAnalyticsOpen(true)}
+            title="Spending Intelligence & Category Analytics"
+            className="p-2 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border border-neutral-200/70 transition-all cursor-pointer"
+          >
+            <BarChart3 className="w-4 h-4" />
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            type="button"
+            onClick={() => setIsExportLedgerOpen(true)}
+            title="Export & Audit Ledger (CSV / JSON / Print)"
+            className="p-2 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border border-neutral-200/70 transition-all cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+          </motion.button>
+
           <motion.button
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.92 }}
@@ -132,7 +164,7 @@ export const NetStandingCard: React.FC<NetStandingCardProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-2 mt-4">
+          <div className="flex flex-col sm:flex-row items-stretch gap-2 mt-4">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.96 }}
@@ -142,6 +174,18 @@ export const NetStandingCard: React.FC<NetStandingCardProps> = ({
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Expense</span>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
+              type="button"
+              onClick={() => setIsReceiptItemizerOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-semibold text-xs border border-neutral-200/80 shadow-2xs transition-all cursor-pointer"
+              title="Itemize restaurant dishes, drinks, tax & tip"
+            >
+              <Receipt className="w-3.5 h-3.5 text-neutral-500" />
+              <span>Itemize</span>
             </motion.button>
 
             <motion.button

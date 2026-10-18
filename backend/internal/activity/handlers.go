@@ -33,7 +33,7 @@ type ActivityItem struct {
 func (h *Handler) ListActivity(w http.ResponseWriter, r *http.Request) {
 	groupID := chi.URLParam(r, "groupId")
 
-	var activities []ActivityItem
+	activities := make([]ActivityItem, 0)
 
 	if h.pool == nil {
 		store := memstore.Get()

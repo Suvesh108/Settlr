@@ -5,11 +5,14 @@ import { useUIStore } from '../../store/uiStore';
 import { UserBalance, RecommendedTransfer, Settlement } from '../../types';
 import { formatMoney } from '../../utils/formatters';
 import { apiRequest } from '../../services/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   ArrowRight, 
   Check, 
   Clock, 
-  Send
+  Send,
+  QrCode,
+  X
 } from 'lucide-react';
 
 interface BilateralDebtMatrixProps {
@@ -30,10 +33,20 @@ export const BilateralDebtMatrix: React.FC<BilateralDebtMatrixProps> = ({
   settlements = [],
 }) => {
   const currentUserId = useAuthStore((state) => state.user?.id);
-  const { setSelectedPairwiseUser, setIsRecordSettlementOpen } = useUIStore();
+  const { setSelectedPairwiseUser, setIsRecordSettlementOpen, setIsUPIPaymentOpen } = useUIStore();
+  const queryClient = useQueryClient();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const pendingSettlements = settlements.filter((s) => s.status === 'PAYMENT_RECORDED');
+
+  const invalidateLedger = () => {
+    queryClient.invalidateQueries({ queryKey: ['group', groupId] });
+    queryClient.invalidateQueries({ queryKey: ['balances', groupId] });
+    queryClient.invalidateQueries({ queryKey: ['pairwise', groupId] });
+    queryClient.invalidateQueries({ queryKey: ['settlements', groupId] });
+    queryClient.invalidateQueries({ queryKey: ['recommended', groupId] });
+    queryClient.invalidateQueries({ queryKey: ['activity', groupId] });
+  };
 
   const handleConfirm = async (settlementId: string) => {
     setActionLoading(settlementId);
@@ -42,9 +55,25 @@ export const BilateralDebtMatrix: React.FC<BilateralDebtMatrixProps> = ({
         method: 'POST',
         useIdempotency: true,
       });
-      window.location.reload();
+      invalidateLedger();
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : 'Confirmation failed');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCancel = async (settlementId: string) => {
+    if (!confirm('Are you sure you want to cancel / decline this settlement record?')) return;
+    setActionLoading(settlementId);
+    try {
+      await apiRequest(`/groups/${groupId}/settlements/${settlementId}/cancel`, {
+        method: 'POST',
+        useIdempotency: true,
+      });
+      invalidateLedger();
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Cancellation failed');
     } finally {
       setActionLoading(null);
     }
@@ -65,28 +94,57 @@ export const BilateralDebtMatrix: React.FC<BilateralDebtMatrixProps> = ({
           <div className="space-y-2">
             {pendingSettlements.map((s) => {
               const isReceiver = s.to_user === currentUserId;
+              const isPayer = s.from_user === currentUserId;
+
               return (
                 <div 
                   key={s.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-white border border-amber-200/60 shadow-2xs"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-white border border-amber-200/60 shadow-2xs"
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold text-neutral-800">
-                      {s.from_user_name || 'Member'} paid {formatMoney(s.amount, currency)} to {s.to_user_name || 'Member'}
+                      {s.from_user_name || 'Member'} claimed payment of {formatMoney(s.amount, currency)} to {s.to_user_name || 'Member'}
                     </span>
                   </div>
 
-                  {isReceiver && (
-                    <button
-                      type="button"
-                      disabled={actionLoading === s.id}
-                      onClick={() => handleConfirm(s.id)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs cursor-pointer"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Confirm Received</span>
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                    {isReceiver && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={actionLoading === s.id}
+                          onClick={() => handleConfirm(s.id)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs cursor-pointer disabled:opacity-50"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Confirm</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={actionLoading === s.id}
+                          onClick={() => handleCancel(s.id)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-neutral-100 hover:bg-rose-50 text-neutral-600 hover:text-rose-600 text-xs font-semibold border border-neutral-200 cursor-pointer disabled:opacity-50"
+                          title="Decline payment"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Decline</span>
+                        </button>
+                      </>
+                    )}
+
+                    {isPayer && (
+                      <button
+                        type="button"
+                        disabled={actionLoading === s.id}
+                        onClick={() => handleCancel(s.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-neutral-100 hover:bg-rose-50 text-neutral-600 hover:text-rose-600 text-xs font-semibold border border-neutral-200 cursor-pointer disabled:opacity-50"
+                        title="Cancel settlement claim"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Cancel Claim</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -150,16 +208,30 @@ export const BilateralDebtMatrix: React.FC<BilateralDebtMatrixProps> = ({
                     </span>
 
                     {isSender && (
-                      <motion.button
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.95 }}
-                        type="button"
-                        onClick={() => setIsRecordSettlementOpen(true, { toUserId: t.to_user, amount: t.amount })}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold transition-all cursor-pointer shadow-2xs"
-                      >
-                        <Send className="w-3 h-3" />
-                        <span>Pay {t.to_user_name}</span>
-                      </motion.button>
+                      <div className="flex items-center gap-1.5">
+                        <motion.button
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.95 }}
+                          type="button"
+                          onClick={() => setIsUPIPaymentOpen(true, { toUserId: t.to_user, toUserName: t.to_user_name, amount: t.amount })}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-all cursor-pointer shadow-2xs"
+                          title="Generate instant UPI payment QR code"
+                        >
+                          <QrCode className="w-3.5 h-3.5" />
+                          <span>UPI QR</span>
+                        </motion.button>
+
+                        <motion.button
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.95 }}
+                          type="button"
+                          onClick={() => setIsRecordSettlementOpen(true, { toUserId: t.to_user, amount: t.amount })}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold transition-all cursor-pointer shadow-2xs"
+                        >
+                          <Send className="w-3 h-3" />
+                          <span>Record Paid</span>
+                        </motion.button>
+                      </div>
                     )}
                   </div>
                 </div>

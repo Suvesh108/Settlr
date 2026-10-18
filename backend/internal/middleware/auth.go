@@ -12,11 +12,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type contextKey string
-
 const (
-	UserIDKey contextKey = "user_id"
-	EmailKey  contextKey = "email"
+	UserIDKey = auth.UserIDKey
+	EmailKey  = auth.EmailKey
 )
 
 func RequireAuth(next http.Handler) http.Handler {
